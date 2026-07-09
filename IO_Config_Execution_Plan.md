@@ -293,3 +293,24 @@ Applied at install, recorded per terminal:
 ## All decisions resolved
 
 Nothing outstanding. Ready to start Phase 0 on your go.
+
+---
+
+## Build status (post Phase 8)
+
+Phases 0–8 are built and tested in `io_config_system/` (137 tests). What
+that does and doesn't prove is not restated here — see
+`io_config_system/docs/VALIDATION_MATRIX.md` for the full traceability
+matrix (every risk in the table above, every reference-doc checklist item,
+mapped to a specific test or flagged as unprovable without real hardware),
+and `io_config_system/docs/INSTALLER_GUIDE.md` for the commissioning
+walkthrough (executed for real, end to end, by
+`tests/test_installer_guide.py`).
+
+Known gaps carried forward, not silently dropped:
+
+- `POST /api/factory-reset` — documented in `api_contract.md`, never implemented.
+- The sync agent (SQLite → MQTT, QoS 1, ACK-only synced flag) — out of scope for this project; reference §8 still needed, unchanged.
+- OTA's signature/migration/rollback machinery is real and tested; the signed binary app package, staged download, and device-reboot health check it would run against in production are not — no Pi to test them on.
+- `identity.py`'s first-boot `boot_id` generation path is ported but not exercised by an automated test in this repo.
+- The reference script's own 300ms debounce code doesn't do what its comments say (see `engine/debounce.py`) — this build implements the debounce the comments describe, not the code's actual behavior. Flag before sign-off if bit-for-bit parity with the shipped bug is somehow the requirement.

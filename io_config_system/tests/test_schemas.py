@@ -119,6 +119,26 @@ def test_io_v2_rejects_point_with_unknown_device():
     assert any("no matching device" in p for p in exc.value.problems)
 
 
+def test_io_v2_rejects_two_digital_out_points_on_same_coil():
+    doc = load_seed("io_config.seed.v2.golden.json")
+    alias = copy.deepcopy(next(p for p in doc["points"] if p["id"] == "led_maint"))
+    alias["id"] = "led_maint_alias"
+    doc["points"].append(alias)  # same unit_id + address as led_maint, different name
+    with pytest.raises(ConfigValidationError) as exc:
+        validate_io(doc)
+    assert any("address conflict" in p for p in exc.value.problems)
+
+
+def test_io_v2_allows_two_digital_in_points_reading_same_address():
+    """Reading the same input under two names is harmless -- only writes
+    (digital_out) create a real hazard, so only those are flagged."""
+    doc = load_seed("io_config.seed.v2.golden.json")
+    alias = copy.deepcopy(next(p for p in doc["points"] if p["id"] == "btn_maint"))
+    alias["id"] = "btn_maint_alias"
+    doc["points"].append(alias)
+    validate_io(doc)  # must not raise
+
+
 def test_io_rejects_unsupported_schema_version():
     doc = load_seed("io_config.seed.v2.golden.json")
     doc["schema_version"] = 99

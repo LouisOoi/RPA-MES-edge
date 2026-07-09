@@ -169,6 +169,26 @@ def _run_io_v2_business_rules(doc: dict, *, enforce_v1_policy_caps: bool) -> Non
         if p["unit_id"] not in device_unit_ids:
             problems.append(f"points/{p['id']}: unit_id {p['unit_id']} has no matching device")
 
+    # -- address conflict: two different digital_out points aliasing the
+    # same physical coil. Two points reading the same input address is
+    # harmless (just two names for one signal); two points that can each
+    # independently WRITE the same (unit_id, address) is a real hazard —
+    # an operator wiring a rule to one of them has no way to know a
+    # second name for the exact same relay exists, and two rules could
+    # then fight over it without validators.py's output-contention check
+    # ever seeing them as the "same point."
+    coil_owners: dict[tuple[int, int], list[str]] = {}
+    for p in doc.get("points", []):
+        if p.get("kind") == "digital_out":
+            key = (p["unit_id"], p["modbus"]["address"])
+            coil_owners.setdefault(key, []).append(p["id"])
+    for (unit_id, address), point_ids in coil_owners.items():
+        if len(point_ids) > 1:
+            problems.append(
+                f"points/{sorted(point_ids)}: all write unit_id {unit_id} address {address} "
+                f"— address conflict, two names for the same physical coil"
+            )
+
     # -- TCP transport requires every device to carry tcp.host -------------
     if doc.get("bus", {}).get("transport") == "tcp":
         for d in doc.get("devices", []):
