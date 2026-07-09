@@ -13,21 +13,22 @@ What changed from the hardcoded script:
   - A TCP read that times out is marked stale in the snapshot, never
     coerced to a fake reading.
 
-What deliberately did NOT move here: the button-debounce-then-pulse-LED and
-fault-register-threshold business logic. In the old script that logic was
-hardcoded Python; in the new model it is supposed to become data (rules[]),
-which is Phase 3's charter ("Evaluate rules[] each cycle"). This engine's
-job is only to keep the live snapshot correct and expose a generic
-`write_point()` that Phase 3's rule actions (and Phase 6's Test Write) will
-call — it does not decide *when* to write anything on its own.
+What deliberately did NOT move here: the button->LED and fault-threshold
+*business* logic (what to do about a value) — that's Phase 3's rule engine,
+wired in optionally below via `rule_engine=`. What DID move here in Phase 3:
+debounce (see debounce.py) — it's signal conditioning on the raw read
+itself, not a decision about what the value means, so it belongs in the
+poll path regardless of whether any rule ever looks at the point.
 """
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any
 
 from validators import validate_io
 
+from .debounce import Debouncer
 from .event_store import log_event
 from .live_snapshot import LiveSnapshot
 from .modbus_clients import build_clients, close_all, connect_all
@@ -44,6 +45,7 @@ class PollEngine:
         db_path: str | Path,
         *,
         clients: dict[int, Any] | None = None,
+        rule_engine: Any | None = None,
     ) -> None:
         validate_io(io_config)  # never run against an unvalidated config
         self.io_config = io_config
@@ -52,6 +54,8 @@ class PollEngine:
         self.clients = clients if clients is not None else build_clients(io_config)
         self.plan = build_plan(io_config)
         self.snapshot = LiveSnapshot()
+        self.rule_engine = rule_engine  # Phase 3, optional — see module docstring
+        self._debouncer = Debouncer(io_config["bus"]["poll_interval_ms"])
 
         self._device_by_unit_id = {d["unit_id"]: d for d in io_config["devices"]}
         self._point_by_id = {p["id"]: p for p in io_config["points"]}
@@ -65,10 +69,16 @@ class PollEngine:
         if self._owns_clients:
             close_all(self.clients)
 
-    def run_cycle(self) -> dict[str, ReadResult]:
-        """One poll pass over every readable point. Returns {point_id:
-        ReadResult} for the cycle, mainly so tests/exit-criteria can assert
-        on exact values without going back through the snapshot."""
+    def run_cycle(self, *, now_ms: int | None = None) -> dict[str, ReadResult]:
+        """One poll pass over every readable point: read -> debounce ->
+        snapshot -> (optionally) rule evaluation. Returns {point_id:
+        ReadResult} of the EFFECTIVE (debounced) values for the cycle,
+        mainly so tests/exit-criteria can assert on exact values without
+        going back through the snapshot.
+
+        `now_ms` is accepted so tests can drive deterministic time (e.g.
+        for pulse-revert timing) instead of depending on wall clock."""
+        now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
         results: dict[str, ReadResult] = {}
         for entry in self.plan:
             device = entry.device
@@ -76,11 +86,22 @@ class PollEngine:
             for point in entry.points:
                 if point["modbus"]["fn"] == "write_coil":
                     continue  # outputs are not polled on the read path
-                result = read_point(client, device, point)
-                self.snapshot.update(point["id"], result.value, result.stale)
-                self._log_stale_transition(point, result)
-                results[point["id"]] = result
+                raw_result = read_point(client, device, point)
+                effective = self._debounce(point, raw_result)
+                self.snapshot.update(point["id"], effective.value, effective.stale)
+                self._log_stale_transition(point, effective)
+                results[point["id"]] = effective
+
+        if self.rule_engine is not None:
+            self.rule_engine.evaluate_cycle(self, results, now_ms=now_ms)
+
         return results
+
+    def _debounce(self, point: dict, raw_result: ReadResult) -> ReadResult:
+        if raw_result.stale or point["kind"] != "digital_in" or not point.get("debounce_ms"):
+            return raw_result
+        effective_value = self._debouncer.apply(point["id"], point["debounce_ms"], raw_result.value)
+        return ReadResult(value=effective_value, stale=False)
 
     def write_point(self, point_id: str, value: bool) -> ReadResult:
         point = self._point_by_id[point_id]

@@ -165,6 +165,20 @@ Everything depends on getting this schema right. Draft shape of `/etc/io_config.
         { "action": "log_event", "event_type": "maintenance_request" }
       ],
       "else": []
+    },
+    {
+      "id": "rule_purge_valve",
+      "enabled": true,
+      "match": "all",
+      "when": [{ "point": "purge_start", "op": "rising" }],
+      "then": [
+        // Normally-closed valve: pulsing means driving it LOW (open) for
+        // ms, then reverting HIGH (closed) — the logical opposite of
+        // whatever "value" was. Omitting "value" defaults to true, which
+        // is the normally-open case (rule_button_led above).
+        { "action": "pulse", "point": "nc_purge_valve", "ms": 800, "value": false }
+      ],
+      "else": []
     }
   ]
 }
@@ -175,6 +189,7 @@ Design notes that matter:
 - **Points have stable string IDs.** Rules reference points by `id`, never by raw address, so re-addressing hardware doesn't silently break logic.
 - **Scaling is declarative** (raw range → engineering range). The poll engine applies it; the UI shows engineering units.
 - **The rule engine is data, not code.** No `eval`. A fixed, whitelisted set of operators (`>`, `<`, `>=`, `<=`, `==`, `between`, `rising`, `falling`) and actions (`set`, `pulse`, `log_event`). This is the only safe way to accept logic from a browser.
+- **`pulse` has a direction: `value` (boolean, default `true`) is the ACTIVE state it pulses TO; the revert after `ms` is always the logical opposite.** Default `true` covers a normally-open output (drive HIGH briefly, settle LOW — `rule_button_led` above). Normally-closed outputs (drive LOW briefly, settle HIGH — `rule_purge_valve` above) set `"value": false`. This needed no schema change: `value` was already a generic action-object field shared with `set`; only the rule-engine interpreter's hardcoded `True` needed to become `action.get("value", True)`, with the revert computed as `not active_value` instead of a hardcoded `False`.
 - **`when` is an array with `match`, even though v1 allows only one condition.** The evaluator loops the array and applies `match` (`all`=AND / `any`=OR). v1 validation caps the array at length 1; lifting that cap plus adding timer/counter operators is the *only* change needed for multi-condition logic later — no schema migration.
 - **Analog is reserved, not wired.** `scaling`/`unit` stay in the point schema and the `analog_in` kind is defined, but v1 validation rejects `analog_in` points. Enabling analog later is a UI toggle + removing that validation guard, not a data-model change.
 - **Every save is attributed.** `updated_by` carries the username typed at login (audit only). Access is gated by two passwords: **operator** (IO/rules) and **admin** (identity, network, bus transport, factory reset, OTA). Destructive actions require the admin password even within a session.
