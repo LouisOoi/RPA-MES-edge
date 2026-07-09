@@ -19,15 +19,26 @@ wired in optionally below via `rule_engine=`. What DID move here in Phase 3:
 debounce (see debounce.py) — it's signal conditioning on the raw read
 itself, not a decision about what the value means, so it belongs in the
 poll path regardless of whether any rule ever looks at the point.
+
+Phase 4 adds hot reload (`reload()` + an optional `config_path=` watcher in
+`run_cycle()`): a config change is validated BEFORE anything about the
+running engine is touched, every current digital_out is driven to its
+`safe_state` before the swap, and the old in-memory config is preserved as
+`.lkg` for `rollback_to_lkg()`. An invalid config never gets past
+`validate_io()`, so the running plan/clients/rule_engine are provably
+untouched on rejection — nothing is reassigned until validation has already
+succeeded.
 """
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from validators import validate_io
+from validators import ConfigValidationError, validate_io
 
+from . import config_store
 from .debounce import Debouncer
 from .event_store import log_event
 from .live_snapshot import LiveSnapshot
@@ -35,6 +46,12 @@ from .modbus_clients import build_clients, close_all, connect_all
 from .point_io import ReadResult, read_point
 from .point_io import write_point as _write_point_io
 from .poll_plan import build_plan
+
+
+@dataclass(frozen=True)
+class ReloadResult:
+    ok: bool
+    problems: list[str] = field(default_factory=list)
 
 
 class PollEngine:
@@ -46,12 +63,19 @@ class PollEngine:
         *,
         clients: dict[int, Any] | None = None,
         rule_engine: Any | None = None,
+        config_path: str | Path | None = None,
+        clients_factory: Any | None = None,
     ) -> None:
         validate_io(io_config)  # never run against an unvalidated config
         self.io_config = io_config
         self.ident = ident
         self.db_path = db_path
-        self.clients = clients if clients is not None else build_clients(io_config)
+        # Used by reload() whenever it isn't handed an explicit `clients=`
+        # override, so tests can inject a fake-client factory once at
+        # construction instead of passing clients= on every reload() call
+        # (production never sets this — build_clients talks to real pymodbus).
+        self._clients_factory = clients_factory if clients_factory is not None else build_clients
+        self.clients = clients if clients is not None else self._clients_factory(io_config)
         self.plan = build_plan(io_config)
         self.snapshot = LiveSnapshot()
         self.rule_engine = rule_engine  # Phase 3, optional — see module docstring
@@ -61,6 +85,13 @@ class PollEngine:
         self._point_by_id = {p["id"]: p for p in io_config["points"]}
         self._stale_state: dict[str, bool] = {}
         self._owns_clients = clients is None
+
+        self._config_path = Path(config_path) if config_path is not None else None
+        self._watcher = (
+            config_store.ConfigWatcher(self._config_path, initial_version=io_config.get("config_version"))
+            if self._config_path is not None
+            else None
+        )
 
     def connect(self) -> None:
         connect_all(self.clients)
@@ -79,6 +110,20 @@ class PollEngine:
         `now_ms` is accepted so tests can drive deterministic time (e.g.
         for pulse-revert timing) instead of depending on wall clock."""
         now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
+
+        if self._watcher is not None:
+            candidate = self._watcher.poll()
+            if candidate is not None:
+                result = self.reload(candidate)
+                event_type = "config_reload_applied" if result.ok else "config_reload_rejected"
+                log_event(self.db_path, self.ident, event_type, {
+                    "config_version": candidate.get("config_version"),
+                    "problems": result.problems,
+                })
+                # Whether applied or rejected, THIS cycle still polls below
+                # with whichever plan is now current — a config change (or
+                # a bad one) never costs a missed poll cycle.
+
         results: dict[str, ReadResult] = {}
         for entry in self.plan:
             device = entry.device
@@ -102,6 +147,69 @@ class PollEngine:
             return raw_result
         effective_value = self._debouncer.apply(point["id"], point["debounce_ms"], raw_result.value)
         return ReadResult(value=effective_value, stale=False)
+
+    def reload(self, new_io_config: dict, *, clients: dict[int, Any] | None = None) -> ReloadResult:
+        """Validate-then-swap hot reload. On any rejection, `self.*` is
+        GUARANTEED untouched — every reassignment below happens only after
+        validation and every fallible build step has already succeeded, so
+        there is no window where a bad config could have partially applied.
+        """
+        try:
+            validate_io(new_io_config)
+        except ConfigValidationError as exc:
+            return ReloadResult(ok=False, problems=exc.problems)
+
+        # Drive every CURRENT digital_out to its safe_state using the OLD
+        # mapping, before anything is swapped. This is the point of doing
+        # it here rather than after: once the swap happens, if the new
+        # config re-addresses or drops this point, nothing running any
+        # longer has a handle on the physical output to turn it off.
+        for point in self.io_config["points"]:
+            if point["kind"] == "digital_out":
+                self.write_point(point["id"], point.get("safe_state", False))
+
+        try:
+            new_clients = clients if clients is not None else self._clients_factory(new_io_config)
+            new_plan = build_plan(new_io_config)
+        except Exception as exc:  # noqa: BLE001 - build failure must not corrupt running state
+            return ReloadResult(ok=False, problems=[f"failed to build new poll plan: {exc}"])
+
+        new_rule_engine = None
+        if self.rule_engine is not None:
+            from .rule_engine import RuleEngine  # local import: avoids a module-level cycle risk
+            new_rule_engine = RuleEngine(new_io_config.get("rules", []), self.ident, self.db_path)
+
+        if self._config_path is not None:
+            config_store.backup_as_lkg(self._config_path, self.io_config)
+
+        old_clients = self.clients
+        old_owns_clients = self._owns_clients
+
+        self.io_config = new_io_config
+        self.clients = new_clients
+        self.plan = new_plan
+        self.rule_engine = new_rule_engine
+        self._debouncer = Debouncer(new_io_config["bus"]["poll_interval_ms"])
+        self._device_by_unit_id = {d["unit_id"]: d for d in new_io_config["devices"]}
+        self._point_by_id = {p["id"]: p for p in new_io_config["points"]}
+        self._owns_clients = clients is None
+
+        if old_owns_clients:
+            close_all(old_clients)
+
+        if self._watcher is not None:
+            self._watcher.mark_seen(new_io_config.get("config_version"))
+
+        return ReloadResult(ok=True)
+
+    def rollback_to_lkg(self) -> ReloadResult:
+        if self._config_path is None:
+            return ReloadResult(ok=False, problems=["no config_path configured; nothing to roll back to"])
+        try:
+            lkg_doc = config_store.read_json(config_store.lkg_path(self._config_path))
+        except (FileNotFoundError, ValueError) as exc:
+            return ReloadResult(ok=False, problems=[f"no usable LKG config: {exc}"])
+        return self.reload(lkg_doc)
 
     def write_point(self, point_id: str, value: bool) -> ReadResult:
         point = self._point_by_id[point_id]

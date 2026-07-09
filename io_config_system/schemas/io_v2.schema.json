@@ -114,7 +114,11 @@
           },
           "unit":        { "type": ["string", "null"] },
           "debounce_ms": { "type": "integer", "minimum": 0 },
-          "invert":      { "type": "boolean" }
+          "invert":      { "type": "boolean" },
+          "safe_state": {
+            "type": "boolean", "default": false,
+            "description": "digital_out only. The value the poll engine drives this output to before a hot reload swaps the running plan (Phase 4) — defined per-point so a re-addressed or removed output is never left energized just because nothing currently running knows about it anymore. Ignored for non-digital_out points."
+          }
         }
       }
     },
