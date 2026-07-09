@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IO Terminal Configurator — Mockup</title>
+<style>
+  :root{
+    --bg:#0e1420; --panel:#161f30; --panel2:#1d2942; --line:#26344f;
+    --txt:#e7edf6; --mut:#8fa1bd; --acc:#4f9dff; --acc2:#3a7fe0;
+    --ok:#30d158; --warn:#ffb020; --bad:#ff5f6d; --chip:#22314e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+  .mock-banner{background:repeating-linear-gradient(45deg,#2a2010,#2a2010 12px,#221a0c 12px,#221a0c 24px);color:var(--warn);text-align:center;font-size:12px;padding:5px;letter-spacing:.5px;border-bottom:1px solid var(--line)}
+  header.topbar{display:flex;align-items:center;gap:16px;padding:14px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .logo{font-weight:700;font-size:16px;display:flex;align-items:center;gap:9px}
+  .logo .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .ident{display:flex;gap:18px;margin-left:8px;flex-wrap:wrap}
+  .ident .kv{font-size:12px;color:var(--mut)}
+  .ident .kv b{color:var(--txt);font-weight:600}
+  .status-pill{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--chip);padding:6px 12px;border-radius:20px;font-size:12px}
+  .status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+  nav.tabs{display:flex;gap:2px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line)}
+  nav.tabs button{background:none;border:none;color:var(--mut);padding:13px 18px;font-size:13.5px;cursor:pointer;border-bottom:2px solid transparent;font-weight:500}
+  nav.tabs button:hover{color:var(--txt)}
+  nav.tabs button.active{color:var(--acc);border-bottom-color:var(--acc)}
+  nav.tabs .navsep{margin-left:auto;align-self:center;color:var(--mut);font-size:10.5px;font-weight:700;letter-spacing:1.5px;padding:0 12px 0 16px;border-left:1px solid var(--line)}
+  main{padding:22px;max-width:1180px;margin:0 auto}
+  .view{display:none} .view.active{display:block}
+  h2{margin:0 0 4px;font-size:18px}
+  .sub{color:var(--mut);margin:0 0 18px;font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .btn{background:var(--acc);color:#fff;border:none;border-radius:8px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn:hover{background:var(--acc2)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  .btn.ghost:hover{border-color:var(--acc);color:var(--acc)}
+  .btn.warn{background:var(--warn);color:#2a1e05}
+  .btn.sm{padding:6px 11px;font-size:12px}
+  .btn.seg{flex:1;background:var(--acc);color:#fff}
+  .btn.seg.ghost{background:transparent;border:1px solid var(--line);color:var(--mut)}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;color:var(--mut);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px}
+  tr:last-child td{border-bottom:none}
+  .tag{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600}
+  .tag.in{background:#16324d;color:#6fc0ff}
+  .tag.out{background:#3a2440;color:#ff9de0}
+  .tag.an{background:#14392a;color:#5fe0a0}
+  .tag.reg{background:#3a3418;color:#ffd66b}
+  .tag.plan{background:#2b2b3a;color:#a9a9d6;border:1px dashed #4a4a68}
+  .val{font-variant-numeric:tabular-nums;font-weight:600}
+  .live-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+  .muted{color:var(--mut)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  label.f{display:block;font-size:12px;color:var(--mut);margin:12px 0 5px}
+  input,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:9px 11px;font-size:13px}
+  input:focus,select:focus{outline:none;border-color:var(--acc)}
+  /* modal */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(6,10,18,.7);z-index:50;align-items:center;justify-content:center}
+  .overlay.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:560px;max-width:92vw;max-height:88vh;overflow:auto;padding:22px}
+  .modal h3{margin:0 0 2px}
+  .close{float:right;cursor:pointer;color:var(--mut);font-size:20px;line-height:1}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+  /* rule builder */
+  .rule{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+  .rule .line1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pill{background:var(--chip);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12.5px}
+  .pill.k{color:var(--acc);font-weight:700;background:transparent;border:none;padding:6px 2px}
+  .switch{width:38px;height:22px;background:var(--line);border-radius:12px;position:relative;cursor:pointer;flex:0 0 auto}
+  .switch.on{background:var(--ok)}
+  .switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+  .switch.on i{left:18px}
+  .banner{border-radius:9px;padding:12px 15px;font-size:13px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start}
+  .banner.ok{background:#12301f;border:1px solid #1f5c38;color:#7ee6a6}
+  .banner.warn{background:#33280d;border:1px solid #6b551a;color:#ffd27a}
+  .banner.info{background:#122a44;border:1px solid #1f4a75;color:#8fc6ff}
+  .steps{display:flex;gap:10px;margin:6px 0 20px;flex-wrap:wrap}
+  .step{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px 13px}
+  .step .n{color:var(--acc);font-weight:700;font-size:12px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--ok);color:#062b12;padding:12px 20px;border-radius:10px;font-weight:600;transition:.3s;z-index:80}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .hist{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px}
+  .hist:last-child{border:none}
+  code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:12px;color:#9fd0ff}
+</style>
+</head>
+<body>
+<div class="mock-banner">◆ NON-FUNCTIONAL MOCKUP — sample data, no live hardware. For UX review only.</div>
+
+<!-- LOGIN GATE -->
+<div class="overlay open" id="login">
+  <div class="modal" style="width:400px;text-align:center">
+    <div class="logo" style="justify-content:center;margin-bottom:4px"><span class="dot"></span> IO Terminal Configurator</div>
+    <p class="sub" style="text-align:center">Station ST07 · Line L03</p>
+    <label class="f" style="text-align:left">Your name (for change log)</label>
+    <input id="loginName" value="operator" placeholder="e.g. Ahmad">
+    <label class="f" style="text-align:left">Access level</label>
+    <select id="loginRole"><option value="operator">Operator — IO &amp; rules</option><option value="admin">Admin — identity, network, OTA</option></select>
+    <label class="f" style="text-align:left">Password</label>
+    <input type="password" value="••••••" placeholder="Operator or admin password">
+    <button class="btn" style="width:100%;margin-top:16px" onclick="doLogin()">Sign in</button>
+    <p class="muted" style="font-size:11px;margin-top:12px">Two tiers: operator for day-to-day IO; admin for identity / network / bus / factory reset / OTA. Your name is stamped on every change.</p>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="logo"><span class="dot"></span> IO Terminal Configurator</div>
+  <div class="ident">
+    <span class="kv">Plant <b>PLT01</b></span>
+    <span class="kv">Line <b>L03</b></span>
+    <span class="kv">Zone <b>Z02</b></span>
+    <span class="kv">Station <b>ST07</b></span>
+    <span class="kv">boot_id <b>f47ac10b…d479</b></span>
+  </div>
+  <div class="status-pill" style="margin-left:auto"><span class="dot" style="background:var(--acc);box-shadow:0 0 8px var(--acc)"></span> <span id="userChip">operator</span></div>
+  <div class="status-pill"><span class="dot"></span> Bus OK · 4 devices · v7</div>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="show('overview',this)">Overview</button>
+  <button onclick="show('bus',this)">Bus Settings</button>
+  <button onclick="show('points',this)">Devices &amp; IO Points</button>
+  <button onclick="show('scan',this)">Bus Scan</button>
+  <button onclick="show('live',this)">Live Values</button>
+  <button onclick="show('rules',this)">Logic Rules</button>
+  <button onclick="show('apply',this)">Apply &amp; Rollback</button>
+  <span class="navsep adminTab">ADMIN</span>
+  <button class="adminTab" onclick="show('identity',this)">Identity 🔒</button>
+  <button class="adminTab" onclick="show('network',this)">Network &amp; Broker 🔒</button>
+  <button class="adminTab" onclick="show('updates',this)">Updates 🔒</button>
+</nav>
+
+<main>
+  <!-- OVERVIEW -->
+  <section id="overview" class="view active">
+    <h2>Terminal Overview</h2>
+    <p class="sub">Snapshot of this IO terminal. Identity is read-only — set at provisioning, never edited here.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">BUS CONNECTION</div>
+        <div style="font-size:22px;font-weight:700;color:var(--ok)">Healthy</div>
+        <div class="muted" style="margin-top:8px" id="ovBus">RS485 RTU · /dev/ttyS0 · 19200 8N1 · poll 100 ms</div>
+      </div>
+      <div class="card">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">CONFIG</div>
+        <div style="font-size:22px;font-weight:700">Version 7</div>
+        <div class="muted" style="margin-top:8px">Applied 09 Jul 2026 · by operator@site · <span style="color:var(--ok)">live</span></div>
+      </div>
+      <div class="card">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">IO POINTS</div>
+        <div style="font-size:22px;font-weight:700">6 mapped</div>
+        <div class="muted" style="margin-top:8px">3 inputs · 1 output · 1 analog · 1 register</div>
+      </div>
+      <div class="card">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">LOGIC RULES</div>
+        <div style="font-size:22px;font-weight:700">2 active</div>
+        <div class="muted" style="margin-top:8px">1 disabled</div>
+      </div>
+    </div>
+    <div class="banner info" style="margin-top:4px">ℹ️ <b>First-boot wizard</b> (factory-fresh unit): Identity → Network &amp; Broker → Time → Bus → Points, step by step. <button class="btn ghost sm" style="margin-left:8px" onclick="toast('Would launch the guided first-boot wizard')">Launch setup wizard</button></div>
+    <div class="banner info">ℹ️ Day-to-day flow: <b>Scan the bus</b> → <b>map &amp; name points</b> → <b>watch live values</b> to confirm → <b>write rules</b> → <b>Apply</b>.</div>
+  </section>
+
+  <!-- IDENTITY -->
+  <section id="identity" class="view">
+    <h2>Terminal Identity <span class="tag plan" style="border-style:solid">Admin</span></h2>
+    <p class="sub">Set at first-boot commissioning. Changing it afterward re-keys this terminal on the server.</p>
+    <div class="banner warn">⚠️ <b>Changing identity forks historical data.</b> The server keys metrics on plant/line/zone/station. Editing these makes it a new station — past OEE/MTBF stop and restart under the new key. Only change during (re)commissioning. An <code>identity_change</code> event is logged to the server.</div>
+    <div class="card">
+      <div class="grid2">
+        <div><label class="f">Plant ID</label><input value="PLT01"></div>
+        <div><label class="f">Line ID</label><input value="L03"></div>
+      </div>
+      <div class="grid2">
+        <div><label class="f">Zone ID</label><input value="Z02"></div>
+        <div><label class="f">Station ID</label><input value="ST07"></div>
+      </div>
+      <label class="f">boot_id (system-locked — never editable)</label>
+      <input value="f47ac10b-58cc-4372-a567-0e02b2c3d479" disabled style="opacity:.6">
+      <div class="muted" style="font-size:12px;margin-top:6px">Regenerates only on factory reset. Survives SD-card / DB recreation.</div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn warn" onclick="toast('Would require admin confirm + log identity_change')">Save identity (admin)</button>
+        <button class="btn ghost" onclick="toast('Would prompt: type STATION ID to confirm factory reset')">Factory reset…</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- NETWORK & BROKER -->
+  <section id="network" class="view">
+    <h2>Network, Broker &amp; Time <span class="tag plan" style="border-style:solid">Admin</span></h2>
+    <p class="sub">Commission connectivity without SSH: device IP, the customer's MQTT broker, TLS certificates, and the clock.</p>
+    <div class="grid2">
+      <div class="card">
+        <b>Device network</b>
+        <label class="f">Mode</label><select><option>Static IP</option><option>DHCP</option></select>
+        <div class="grid2"><div><label class="f">IP address</label><input value="192.168.10.9"></div><div><label class="f">Subnet mask</label><input value="255.255.255.0"></div></div>
+        <div class="grid2"><div><label class="f">Gateway</label><input value="192.168.10.1"></div><div><label class="f">DNS</label><input value="192.168.10.1"></div></div>
+      </div>
+      <div class="card">
+        <b>MQTT broker</b>
+        <div class="grid2"><div><label class="f">Broker host</label><input value="mqtt.customer.local"></div><div><label class="f">Port</label><input value="8883"></div></div>
+        <label class="f">TLS certificates</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn ghost sm" onclick="toast('Upload ca.crt')">⤒ CA cert</button>
+          <button class="btn ghost sm" onclick="toast('Upload client.crt')">⤒ Client cert</button>
+          <button class="btn ghost sm" onclick="toast('Upload client.key')">⤒ Client key</button>
+        </div>
+        <div class="row" style="margin-top:14px"><button class="btn" onclick="toast('Testing TLS connection to broker…')">Test connection</button><span class="muted">last: <span style="color:var(--ok)">OK</span></span></div>
+      </div>
+    </div>
+    <div class="card">
+      <b>Time &amp; clock</b>
+      <div class="banner warn" style="margin-top:10px">⚠️ Metrics use the controller clock. A wrong time silently corrupts OEE/MTBF — keep NTP healthy.</div>
+      <div class="grid2"><div><label class="f">NTP server(s)</label><input value="pool.ntp.org"></div><div><label class="f">Timezone</label><input value="Asia/Kuala_Lumpur"></div></div>
+      <div class="muted" style="font-size:12px;margin-top:8px">Hardware RTC: <span style="color:var(--ok)">present</span> · last sync 2 min ago</div>
+    </div>
+  </section>
+
+  <!-- BUS SETTINGS -->
+  <section id="bus" class="view">
+    <h2>Bus Settings</h2>
+    <p class="sub">Choose how this terminal talks to field devices. Everything else — points, scaling, rules — works the same regardless of transport.</p>
+    <div class="card">
+      <label class="f">Transport</label>
+      <div style="display:flex;gap:10px;max-width:420px">
+        <button class="btn seg active" id="segRtu" onclick="setTransport('rtu')">RS485 · Modbus RTU</button>
+        <button class="btn seg ghost" id="segTcp" onclick="setTransport('tcp')">Ethernet · Modbus TCP</button>
+      </div>
+
+      <div id="rtuFields">
+        <div class="grid2">
+          <div><label class="f">Serial port</label><input value="/dev/ttyS0"></div>
+          <div><label class="f">Baud rate</label><select><option>9600</option><option selected>19200</option><option>38400</option><option>115200</option></select></div>
+        </div>
+        <div class="grid2">
+          <div><label class="f">Parity</label><select><option selected>None (N)</option><option>Even (E)</option><option>Odd (O)</option></select></div>
+          <div><label class="f">Stop bits</label><select><option selected>1</option><option>2</option></select></div>
+        </div>
+      </div>
+
+      <div id="tcpFields" style="display:none">
+        <div class="banner info" style="margin-top:4px">Edge = Modbus TCP <b>client</b>. Each IO module is its own server with its own IP — set per device in the Devices tab. These are just defaults.</div>
+        <div class="grid2">
+          <div><label class="f">Link method</label><select><option>A · Wired switch</option><option>B · Wireless gateway</option></select></div>
+          <div><label class="f">Default TCP port</label><input value="502"></div>
+        </div>
+        <div class="grid2">
+          <div><label class="f">Timeout (ms)</label><input value="800"></div>
+          <div><label class="f">Retries / backoff</label><input value="2 × 200 ms"></div>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:8px">Wireless (Method B) uses a longer timeout &amp; retry — a dropped read is marked stale, never read as zero.</div>
+      </div>
+
+      <div class="grid2"><div><label class="f">Poll interval (ms)</label><input value="100"></div><div></div></div>
+      <div class="row" style="margin-top:16px"><button class="btn" onclick="toast('Bus settings saved to draft')">Save to draft</button><button class="btn ghost" onclick="toast('Testing connection…')">Test connection</button></div>
+    </div>
+    <div class="banner info" id="busNote">ℹ️ RTU mode: <b>unit_id</b> is the RS485 slave address on the multi-drop bus (≤32 devices, 120 Ω terminated).</div>
+  </section>
+
+  <!-- POINTS -->
+  <section id="points" class="view">
+    <div class="row">
+      <div><h2>Devices &amp; IO Points</h2><p class="sub" style="margin:0">Name, scale and address every point on the RS485 bus. Rules reference points by name, not address.</p></div>
+      <button class="btn" onclick="openModal()">+ Add IO Point</button>
+    </div>
+    <div class="card" style="padding:0">
+      <table>
+        <thead><tr><th>Name</th><th>Type</th><th>Unit id</th><th>Modbus</th><th>Scaling / Unit</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><b>Maintenance Button</b><div class="muted">btn_maint</div></td><td><span class="tag in">Digital In</span></td><td>1</td><td><code>read_coils @0</code></td><td class="muted">debounce 300 ms</td><td><button class="btn ghost sm">Edit</button></td></tr>
+          <tr><td><b>Maintenance LED</b><div class="muted">led_maint</div></td><td><span class="tag out">Digital Out</span></td><td>1</td><td><code>write_coil @1</code></td><td class="muted">—</td><td><button class="btn ghost sm">Edit</button></td></tr>
+          <tr><td><b>Machine Fault Code</b><div class="muted">fault_code</div></td><td><span class="tag reg">Register</span></td><td>2</td><td><code>read_holding @100</code></td><td class="muted">raw</td><td><button class="btn ghost sm">Edit</button></td></tr>
+          <tr><td><b>Unit Counter</b><div class="muted">unit_count</div></td><td><span class="tag in">Digital In</span></td><td>3</td><td><code>read_input @0</code></td><td class="muted">count</td><td><button class="btn ghost sm">Edit</button></td></tr>
+          <tr style="opacity:.6"><td><b>Oven Temperature</b><div class="muted">temp_oven</div></td><td><span class="tag an">Analog In</span> <span class="tag plan">v2</span></td><td>5</td><td><code>read_input @0</code></td><td>0–4095 → 0–200 <b>°C</b></td><td><button class="btn ghost sm">Edit</button></td></tr>
+          <tr style="opacity:.6"><td><b>Line Pressure</b><div class="muted">press_line</div></td><td><span class="tag an">Analog In</span> <span class="tag plan">v2</span></td><td>5</td><td><code>read_input @1</code></td><td>0–4095 → 0–10 <b>bar</b></td><td><button class="btn ghost sm">Edit</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SCAN -->
+  <section id="scan" class="view">
+    <h2>Bus Scan</h2>
+    <p class="sub">Probe RS485 slave addresses to discover what's physically connected. Use this to identify unknown devices during commissioning.</p>
+    <div class="row"><button class="btn" onclick="fakeScan()">▷ <span id="scanHint">Scan addresses 1–32</span></button><span id="scanmsg" class="muted"></span></div>
+    <div class="card" style="padding:0">
+      <table>
+        <thead><tr><th>Address</th><th>Response</th><th>Guessed type</th><th></th></tr></thead>
+        <tbody id="scanbody">
+          <tr><td><b>1</b></td><td><span class="live-dot" style="background:var(--ok)"></span>Answered (12 ms)</td><td>Remote I/O (coils)</td><td><button class="btn ghost sm">Map points</button></td></tr>
+          <tr><td><b>2</b></td><td><span class="live-dot" style="background:var(--ok)"></span>Answered (9 ms)</td><td>PLC (holding regs)</td><td><button class="btn ghost sm">Map points</button></td></tr>
+          <tr><td><b>3</b></td><td><span class="live-dot" style="background:var(--ok)"></span>Answered (11 ms)</td><td>Sensor (input regs)</td><td><button class="btn ghost sm">Map points</button></td></tr>
+          <tr><td><b>5</b></td><td><span class="live-dot" style="background:var(--ok)"></span>Answered (14 ms)</td><td>Analog module</td><td><button class="btn ghost sm">Map points</button></td></tr>
+          <tr><td class="muted">6</td><td class="muted"><span class="live-dot" style="background:var(--line)"></span>No response</td><td class="muted">—</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="banner warn">⚠️ Scanning writes nothing to the bus — reads only. Safe to run on a live line.</div>
+  </section>
+
+  <!-- LIVE -->
+  <section id="live" class="view">
+    <h2>Live Values</h2>
+    <p class="sub">Read-only real-time view. Use it to confirm a point is mapped to the right register before writing rules. <span id="liveclock" style="color:var(--acc)"></span></p>
+    <div class="card" style="padding:0">
+      <table>
+        <thead><tr><th>Point</th><th>Raw</th><th>Scaled</th><th>Status</th></tr></thead>
+        <tbody id="livebody">
+          <tr><td>Maintenance Button</td><td class="val" data-k="btn">0</td><td class="muted">OFF</td><td><span class="live-dot" style="background:var(--ok)"></span>ok</td></tr>
+          <tr><td>Maintenance LED</td><td class="val" data-k="led">0</td><td class="muted">OFF</td><td><span class="live-dot" style="background:var(--ok)"></span>ok</td></tr>
+          <tr><td>Machine Fault Code</td><td class="val" data-k="fault">0</td><td class="muted">no fault</td><td><span class="live-dot" style="background:var(--ok)"></span>ok</td></tr>
+          <tr><td>Unit Counter</td><td class="val" data-k="cnt">1042</td><td class="muted">units</td><td><span class="live-dot" style="background:var(--ok)"></span>ok</td></tr>
+          <tr><td>Oven Temperature</td><td class="val" data-k="tempraw">2310</td><td class="val" data-k="tempsc">112.8 °C</td><td><span class="live-dot" style="background:var(--ok)"></span>ok</td></tr>
+          <tr><td>Line Pressure</td><td class="val" data-k="prraw">1680</td><td class="val" data-k="prsc">4.10 bar</td><td><span class="live-dot" style="background:var(--ok)"></span>ok</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="banner info">🔧 <b>Commissioning mode</b> lets you manually pulse an output to test wiring. It requires confirmation and auto-exits after 5 min. <button class="btn warn sm" style="margin-left:10px" onclick="toast('Commissioning mode — would prompt for confirmation')">Enter commissioning mode</button></div>
+  </section>
+
+  <!-- RULES -->
+  <section id="rules" class="view">
+    <div class="row">
+      <div><h2>Logic Rules</h2><p class="sub" style="margin:0">Wire sensors to relays. <b>IF</b> a condition holds <b>THEN</b> drive an output. No code — pick from dropdowns.</p></div>
+      <button class="btn" onclick="toast('Rule builder — add condition + action')">+ Add Rule</button>
+    </div>
+    <div class="banner info">ℹ️ <b>v1:</b> one condition per rule (IF → THEN/ELSE). Multi-condition (AND/OR), timers and counters are structured into the schema for a later release.</div>
+
+    <div class="rule">
+      <div class="line1">
+        <div class="switch on" onclick="this.classList.toggle('on')"><i></i></div>
+        <span class="pill k">IF</span>
+        <span class="pill">Oven Temperature</span>
+        <span class="pill">&gt;</span>
+        <span class="pill">180 °C</span>
+        <span class="pill">for 2 s</span>
+        <span class="pill k">THEN</span>
+        <span class="pill">set <b>Maintenance LED</b> = ON</span>
+        <span class="pill k">ELSE</span>
+        <span class="pill">set <b>Maintenance LED</b> = OFF</span>
+        <button class="btn ghost sm" style="margin-left:auto">Edit</button>
+      </div>
+    </div>
+
+    <div class="rule">
+      <div class="line1">
+        <div class="switch on" onclick="this.classList.toggle('on')"><i></i></div>
+        <span class="pill k">IF</span>
+        <span class="pill">Maintenance Button</span>
+        <span class="pill">rising edge</span>
+        <span class="pill k">THEN</span>
+        <span class="pill">pulse <b>Maintenance LED</b> 500 ms</span>
+        <span class="pill">+ log <b>maintenance_request</b></span>
+        <button class="btn ghost sm" style="margin-left:auto">Edit</button>
+      </div>
+    </div>
+
+    <div class="rule" style="opacity:.55">
+      <div class="line1">
+        <div class="switch" onclick="this.classList.toggle('on')"><i></i></div>
+        <span class="pill k">IF</span>
+        <span class="pill">Line Pressure</span>
+        <span class="pill">&gt;</span>
+        <span class="pill">8 bar</span>
+        <span class="pill k">THEN</span>
+        <span class="pill">log <b>machine_fault</b></span>
+        <span class="muted" style="margin-left:8px">disabled</span>
+        <button class="btn ghost sm" style="margin-left:auto">Edit</button>
+      </div>
+    </div>
+
+    <div class="banner ok">✓ Validation: no address conflicts, no dangling point references, no two rules driving the same output.</div>
+  </section>
+
+  <!-- UPDATES (OTA) -->
+  <section id="updates" class="view">
+    <h2>Software Updates <span class="tag plan" style="border-style:solid">Admin</span></h2>
+    <p class="sub">Updates are pushed over the air, verified, and rolled back automatically if the health check fails.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="muted" style="font-size:12px">INSTALLED</div>
+        <div style="font-size:22px;font-weight:700">App v1.4.2 · schema v2</div>
+        <div class="muted" style="margin-top:8px">Installed 02 Jul 2026 · healthy</div>
+      </div>
+      <div class="card">
+        <div class="muted" style="font-size:12px">AVAILABLE</div>
+        <div style="font-size:22px;font-weight:700;color:var(--acc)">App v1.5.0 · schema v3</div>
+        <div class="muted" style="margin-top:8px">Signed · includes config migration v2→v3</div>
+        <button class="btn" style="margin-top:12px" onclick="toast('Staged → verify signature → backup → migrate → health check')">Install update</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="steps" style="margin:0">
+        <div class="step"><div class="n">1 · DOWNLOAD</div><div style="margin-top:4px">Staged, not applied</div></div>
+        <div class="step"><div class="n">2 · VERIFY</div><div style="margin-top:4px">Signature check</div></div>
+        <div class="step"><div class="n">3 · MIGRATE</div><div style="margin-top:4px">Backup + schema upgrade</div></div>
+        <div class="step"><div class="n">4 · HEALTH</div><div style="margin-top:4px">Pass → keep · Fail → rollback</div></div>
+      </div>
+    </div>
+    <div class="banner ok">✓ Auto-rollback armed: a failed update reverts to App v1.4.2 + its config automatically.</div>
+  </section>
+
+  <!-- APPLY -->
+  <section id="apply" class="view">
+    <h2>Apply &amp; Rollback</h2>
+    <p class="sub">Saving validates the config, then hot-swaps it into the running poll loop — no restart, no missed cycles. A bad config is rejected and the current one keeps running.</p>
+    <div class="steps">
+      <div class="step"><div class="n">1 · VALIDATE</div><div style="margin-top:4px">Schema + conflict checks</div></div>
+      <div class="step"><div class="n">2 · SAVE</div><div style="margin-top:4px">Atomic write, version bump</div></div>
+      <div class="step"><div class="n">3 · HOT SWAP</div><div style="margin-top:4px">Engine reloads live</div></div>
+      <div class="step"><div class="n">4 · CONFIRM</div><div style="margin-top:4px">Or auto-revert to last good</div></div>
+    </div>
+    <div class="banner ok">✓ Draft passes validation — 6 points, 3 rules. Ready to apply as <b>version 8</b>.</div>
+    <div class="row"><button class="btn" onclick="toast('Config validated & hot-applied as v8')">Validate &amp; Apply</button><button class="btn ghost" onclick="toast('Draft discarded')">Discard draft</button></div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:8px"><b>Version history</b><span class="muted">retained on device · one-click rollback</span></div>
+      <div class="hist"><span><b>v7</b> · 09 Jul 2026 14:02 · operator@site <span class="tag an" style="margin-left:8px">current</span></span><button class="btn ghost sm" disabled>Active</button></div>
+      <div class="hist"><span><b>v6</b> · 08 Jul 2026 09:41 · operator@site</span><button class="btn ghost sm" onclick="toast('Would roll back to v6')">Roll back</button></div>
+      <div class="hist"><span><b>v5</b> · 05 Jul 2026 16:20 · admin</span><button class="btn ghost sm" onclick="toast('Would roll back to v5')">Roll back</button></div>
+    </div>
+    <div class="row"><button class="btn ghost sm" onclick="toast('Config exported to file')">⤓ Export config</button><button class="btn ghost sm" onclick="toast('Would import from file')">⤒ Import config</button></div>
+  </section>
+</main>
+
+<!-- ADD POINT MODAL -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <span class="close" onclick="closeModal()">×</span>
+    <h3>Add IO Point</h3>
+    <p class="sub">Define one point on the bus. It becomes selectable in Logic Rules.</p>
+    <div class="grid2">
+      <div><label class="f">Friendly name</label><input value="Oven Temperature"></div>
+      <div><label class="f">Point ID (for rules)</label><input value="temp_oven"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Type</label><select><option>Digital In</option><option>Digital Out</option><option>Register (PLC)</option><option disabled>Analog In (v2 — planned)</option></select></div>
+      <div><label class="f">Unit id (slave addr / TCP unit)</label><input value="1"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Device IP (TCP mode only)</label><input value="192.168.10.11" placeholder="e.g. 192.168.10.11"></div>
+      <div><label class="f">&nbsp;</label><div class="muted" style="padding-top:9px">Each TCP module has its own IP.</div></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Modbus function</label><select><option>read_input_registers</option><option>read_holding_registers</option><option>read_coils</option><option>write_coil</option></select></div>
+      <div><label class="f">Register / coil address</label><input value="0"></div>
+    </div>
+    <label class="f">Scaling (analog only)</label>
+    <div class="grid2">
+      <div><input placeholder="raw min" value="0"></div><div><input placeholder="raw max" value="4095"></div>
+    </div>
+    <div class="grid2">
+      <div><input placeholder="eng min" value="0"></div><div><input placeholder="eng max" value="200"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Unit</label><input value="°C"></div>
+      <div><label class="f">Debounce / dwell (ms)</label><input value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="closeModal();toast('Point added to draft')">Add to draft</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function doLogin(){
+    const n=document.getElementById('loginName').value||'operator';
+    const r=document.getElementById('loginRole').value;
+    document.getElementById('userChip').textContent=n+' · '+r;
+    applyRole(r);
+    document.getElementById('login').classList.remove('open');
+  }
+  function applyRole(r){
+    const admin=(r==='admin');
+    document.querySelectorAll('.adminTab').forEach(b=>b.style.display=admin?'':'none');
+    if(!admin){
+      // if an admin-only view was open, fall back to Overview
+      const open=document.querySelector('.view.active');
+      if(open && ['identity','network','updates'].includes(open.id)){
+        document.querySelector("nav.tabs button").click();
+      }
+    }
+  }
+  function show(id,el){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function setTransport(t){
+    const rtu=t==='rtu';
+    document.getElementById('segRtu').classList.toggle('ghost',!rtu);
+    document.getElementById('segRtu').classList.toggle('active',rtu);
+    document.getElementById('segTcp').classList.toggle('ghost',rtu);
+    document.getElementById('segTcp').classList.toggle('active',!rtu);
+    document.getElementById('rtuFields').style.display=rtu?'block':'none';
+    document.getElementById('tcpFields').style.display=rtu?'none':'block';
+    document.getElementById('ovBus').textContent=rtu
+      ? 'RS485 RTU · /dev/ttyS0 · 19200 8N1 · poll 100 ms'
+      : 'Modbus TCP · 192.168.1.50:502 · poll 100 ms';
+    document.getElementById('busNote').innerHTML=rtu
+      ? 'ℹ️ RTU mode: <b>unit_id</b> is the RS485 slave address on the multi-drop bus (≤32 devices, 120 Ω terminated).'
+      : '🔒 TCP mode: put the edge + all IO modules on an <b>isolated OT VLAN</b>, reachable only from this edge. Modbus TCP has no password — network isolation is the security.';
+    document.getElementById('scanHint').textContent=rtu?'Scan addresses 1–32':'Scan IP range on port 502';
+  }
+  function openModal(){document.getElementById('modal').classList.add('open')}
+  function closeModal(){document.getElementById('modal').classList.remove('open')}
+  let tT;
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),2200)}
+  function fakeScan(){const m=document.getElementById('scanmsg');m.textContent='Scanning…';setTimeout(()=>m.textContent='Done — 4 devices responded, 28 silent.',900)}
+  // fake live values
+  function jitter(base,sp){return base+Math.round((Math.random()-.5)*sp)}
+  setInterval(()=>{
+    const tr=jitter(2310,40), pr=jitter(1680,30);
+    const set=(k,v)=>{const e=document.querySelector('[data-k="'+k+'"]');if(e)e.textContent=v};
+    set('tempraw',tr); set('tempsc',(tr/4095*200).toFixed(1)+' °C');
+    set('prraw',pr); set('prsc',(pr/4095*10).toFixed(2)+' bar');
+    set('cnt',1042+Math.floor(Date.now()/6000)%50);
+    const c=document.getElementById('liveclock');if(c)c.textContent='updating live · '+new Date().toLocaleTimeString();
+  },1200);
+</script>
+</body>
+</html>

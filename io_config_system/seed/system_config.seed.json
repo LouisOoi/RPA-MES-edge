@@ -1,0 +1,22 @@
+{
+  "network": {
+    "mode": "static",
+    "ip": "192.168.10.9",
+    "mask": "255.255.255.0",
+    "gateway": "192.168.10.1",
+    "dns": ["192.168.10.1"]
+  },
+  "mqtt": {
+    "broker_host": "mqtt.factory.local",
+    "port": 8883,
+    "tls": true,
+    "ca_cert": "/etc/certs/ca.crt",
+    "client_cert": "/etc/certs/client.crt",
+    "client_key": "/etc/certs/client.key"
+  },
+  "time": {
+    "ntp": ["pool.ntp.org"],
+    "timezone": "Asia/Kuala_Lumpur",
+    "rtc_present": true
+  }
+}

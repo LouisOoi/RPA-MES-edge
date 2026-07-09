@@ -1,0 +1,57 @@
+{
+  "schema_version": 2,
+  "config_version": 1,
+  "updated_at": 0,
+  "updated_by": "migration_test",
+  "bus": {
+    "transport": "rtu",
+    "poll_interval_ms": 100,
+    "serial": {
+      "port": "/dev/ttyS0",
+      "baudrate": 19200,
+      "parity": "N",
+      "stopbits": 1,
+      "bytesize": 8
+    }
+  },
+  "devices": [
+    { "unit_id": 1, "name": "Remote IO Module", "type": "remote_io" },
+    { "unit_id": 2, "name": "Machine PLC", "type": "plc" }
+  ],
+  "points": [
+    {
+      "id": "btn_maint", "name": "Btn Maint", "unit_id": 1, "kind": "digital_in",
+      "modbus": { "fn": "read_coils", "address": 0, "count": 1 },
+      "scaling": null, "unit": null, "invert": false, "debounce_ms": 300
+    },
+    {
+      "id": "led_maint", "name": "Led Maint", "unit_id": 1, "kind": "digital_out",
+      "modbus": { "fn": "write_coil", "address": 1 },
+      "scaling": null, "unit": null, "invert": false
+    },
+    {
+      "id": "fault_code", "name": "Fault Code", "unit_id": 2, "kind": "register",
+      "modbus": { "fn": "read_holding_registers", "address": 100, "count": 1 },
+      "scaling": null, "unit": null, "invert": false
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule_btn_maint", "enabled": true, "match": "all",
+      "when": [{ "point": "btn_maint", "op": "rising" }],
+      "then": [
+        { "action": "pulse", "point": "led_maint", "ms": 500 },
+        { "action": "log_event", "event_type": "maintenance_request" }
+      ],
+      "else": []
+    },
+    {
+      "id": "rule_fault_code_fault", "enabled": true, "match": "all",
+      "when": [{ "point": "fault_code", "op": ">", "value": 0 }],
+      "then": [
+        { "action": "log_event", "event_type": "machine_fault" }
+      ],
+      "else": []
+    }
+  ]
+}

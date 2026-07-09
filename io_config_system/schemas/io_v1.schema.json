@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yisb.local/schemas/io_config.v1.schema.json",
+  "title": "IO Config schema_version 1 (legacy — pre rule-engine)",
+  "description": "Represents the config shape implied by today's hardcoded modbus_poll.py: RS485 RTU only, no bus.transport choice, addressing is a flat address+kind (no modbus.fn), and button->LED / fault logic still lives in Python, not in a rules[] array. This version exists only as the migration source for schema_version 2; new units are never provisioned on v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "bus", "devices", "points"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "bus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["port", "baudrate", "parity", "stopbits", "bytesize", "poll_interval_ms"],
+      "properties": {
+        "port":            { "type": "string", "minLength": 1 },
+        "baudrate":        { "type": "integer", "enum": [9600, 19200, 38400, 57600, 115200] },
+        "parity":          { "enum": ["N", "E", "O"] },
+        "stopbits":        { "enum": [1, 2] },
+        "bytesize":        { "enum": [7, 8] },
+        "poll_interval_ms": { "type": "integer", "minimum": 10, "maximum": 5000 }
+      }
+    },
+    "devices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "name"],
+        "properties": {
+          "unit_id": { "type": "integer", "minimum": 1, "maximum": 247 },
+          "name":    { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "points": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "unit_id", "kind", "address"],
+        "properties": {
+          "id":      { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "unit_id": { "type": "integer", "minimum": 1, "maximum": 247 },
+          "kind":    { "enum": ["digital_in", "digital_out", "register"] },
+          "address": { "type": "integer", "minimum": 0 },
+          "debounce_reads": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of consecutive 100ms poll cycles before a digital_in edge is accepted. Legacy equivalent of DEBOUNCE_COUNT."
+          }
+        }
+      }
+    }
+  }
+}

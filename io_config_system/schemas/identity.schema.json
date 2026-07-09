@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yisb.local/schemas/ctrl_id.schema.json",
+  "title": "Controller Identity (/etc/ctrl_id.json)",
+  "description": "Admin-tier only. boot_id is system-locked: never accept writes to it through the API layer even though it is present in this schema for read validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plant_id", "line_id", "zone_id", "station_id", "boot_id"],
+  "properties": {
+    "plant_id":   { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[A-Za-z0-9_-]+$" },
+    "line_id":    { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[A-Za-z0-9_-]+$" },
+    "zone_id":    { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[A-Za-z0-9_-]+$" },
+    "station_id": { "type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[A-Za-z0-9_-]+$" },
+    "boot_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "description": "LOCKED. Generated only at provisioning / factory reset (reference Rule 2). The API layer must reject any PUT that changes this field on an existing identity file."
+    }
+  }
+}

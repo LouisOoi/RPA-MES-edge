@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yisb.local/schemas/io_config.v2.schema.json",
+  "title": "IO Config schema_version 2 (current)",
+  "description": "Operator-tier, hot-reloaded field IO config. Structural rules only — cross-field business rules (dangling point refs, output contention, analog_in gating, when[] length cap for rule-engine v1) are enforced in validators.py, not here, so those policy caps can be lifted later without a schema migration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "config_version", "updated_at", "updated_by", "bus", "devices", "points", "rules"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "config_version":  { "type": "integer", "minimum": 1 },
+    "updated_at":      { "type": "integer", "minimum": 0, "description": "Unix epoch ms" },
+    "updated_by":      { "type": "string", "minLength": 1 },
+
+    "bus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transport", "poll_interval_ms"],
+      "properties": {
+        "transport":        { "enum": ["rtu", "tcp"] },
+        "poll_interval_ms": { "type": "integer", "minimum": 10, "maximum": 5000 },
+        "serial": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["port", "baudrate", "parity", "stopbits", "bytesize"],
+          "properties": {
+            "port":     { "type": "string", "minLength": 1 },
+            "baudrate": { "type": "integer", "enum": [9600, 19200, 38400, 57600, 115200] },
+            "parity":   { "enum": ["N", "E", "O"] },
+            "stopbits": { "enum": [1, 2] },
+            "bytesize": { "enum": [7, 8] }
+          }
+        },
+        "tcp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["port", "timeout_ms", "retries", "backoff_ms"],
+          "properties": {
+            "port":       { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "timeout_ms": { "type": "integer", "minimum": 10 },
+            "retries":    { "type": "integer", "minimum": 0, "maximum": 10 },
+            "backoff_ms": { "type": "integer", "minimum": 0 }
+          }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "transport": { "const": "rtu" } } }, "then": { "required": ["serial"] } },
+        { "if": { "properties": { "transport": { "const": "tcp" } } }, "then": { "required": ["tcp"] } }
+      ]
+    },
+
+    "devices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "name", "type"],
+        "properties": {
+          "unit_id": { "type": "integer", "minimum": 1, "maximum": 247 },
+          "name":    { "type": "string", "minLength": 1 },
+          "type":    { "enum": ["remote_io", "plc", "sensor", "other"] },
+          "tcp": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["host"],
+            "properties": {
+              "host": { "type": "string", "format": "hostname" },
+              "slave_id": {
+                "type": "integer", "minimum": 0, "maximum": 255, "default": 1,
+                "description": "Modbus unit-identifier byte sent on the wire. Usually irrelevant for native TCP modules (each has its own IP), defaults to 1. Distinct from the top-level 'unit_id', which is this config's own device key and must be unique."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "points": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "unit_id", "kind", "modbus"],
+        "properties": {
+          "id":      { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "name":    { "type": "string", "minLength": 1 },
+          "unit_id": { "type": "integer", "minimum": 1, "maximum": 247 },
+          "kind":    { "enum": ["digital_in", "digital_out", "analog_in", "register"] },
+          "modbus": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fn", "address"],
+            "properties": {
+              "fn": { "enum": ["read_coils", "write_coil", "read_input_registers", "read_holding_registers"] },
+              "address": { "type": "integer", "minimum": 0 },
+              "count":   { "type": "integer", "minimum": 1, "default": 1 }
+            }
+          },
+          "scaling": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["raw_min", "raw_max", "eng_min", "eng_max"],
+                "properties": {
+                  "raw_min": { "type": "number" }, "raw_max": { "type": "number" },
+                  "eng_min": { "type": "number" }, "eng_max": { "type": "number" }
+                }
+              }
+            ]
+          },
+          "unit":        { "type": ["string", "null"] },
+          "debounce_ms": { "type": "integer", "minimum": 0 },
+          "invert":      { "type": "boolean" }
+        }
+      }
+    },
+
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "enabled", "match", "when", "then"],
+        "properties": {
+          "id":      { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "enabled": { "type": "boolean" },
+          "match":   { "enum": ["all", "any"] },
+          "when": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["point", "op"],
+              "properties": {
+                "point": { "type": "string" },
+                "op":    { "enum": [">", "<", ">=", "<=", "==", "between", "rising", "falling"] },
+                "value": { "type": "number" },
+                "low":   { "type": "number" },
+                "high":  { "type": "number" }
+              },
+              "allOf": [
+                { "if": { "properties": { "op": { "enum": [">", "<", ">=", "<=", "=="] } } },
+                  "then": { "required": ["value"] } },
+                { "if": { "properties": { "op": { "const": "between" } } },
+                  "then": { "required": ["low", "high"] } }
+              ]
+            }
+          },
+          "then": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["action"],
+              "properties": {
+                "action":     { "enum": ["set", "pulse", "log_event"] },
+                "point":      { "type": "string" },
+                "value":      { "type": "boolean" },
+                "ms":         { "type": "integer", "minimum": 1 },
+                "event_type": { "type": "string" }
+              },
+              "allOf": [
+                { "if": { "properties": { "action": { "const": "set" } } },
+                  "then": { "required": ["point", "value"] } },
+                { "if": { "properties": { "action": { "const": "pulse" } } },
+                  "then": { "required": ["point", "ms"] } },
+                { "if": { "properties": { "action": { "const": "log_event" } } },
+                  "then": { "required": ["event_type"] } }
+              ]
+            }
+          },
+          "else": {
+            "type": "array",
+            "items": { "type": "object" }
+          }
+        }
+      }
+    }
+  }
+}
