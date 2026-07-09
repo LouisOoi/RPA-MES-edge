@@ -122,19 +122,28 @@ def _run_io_v2_business_rules(doc: dict, *, enforce_v1_policy_caps: bool) -> Non
             if ref is not None and ref not in point_ids:
                 problems.append(f"rules/{rule['id']}/then|else: references unknown point '{ref}'")
 
-    # -- output contention: two enabled rules writing the same coil ------
-    writers: dict[str, list[str]] = {}
+    # -- output contention: two DIFFERENT enabled rules writing the same
+    # coil. `then` and `else` within ONE rule are mutually exclusive at
+    # runtime (only one branch ever fires per cycle), so a rule writing
+    # the same point in both its then and else is not contention with
+    # itself — dedupe to the set of points each rule can write at all,
+    # then flag a point only if more than one DISTINCT rule can write it.
+    writers: dict[str, set[str]] = {}
     for rule in doc.get("rules", []):
         if not rule.get("enabled", True):
             continue
-        for action in rule.get("then", []) + rule.get("else", []):
-            if action.get("action") in ("set", "pulse"):
-                writers.setdefault(action["point"], []).append(rule["id"])
+        points_this_rule_writes = {
+            action["point"]
+            for action in rule.get("then", []) + rule.get("else", [])
+            if action.get("action") in ("set", "pulse")
+        }
+        for point_id in points_this_rule_writes:
+            writers.setdefault(point_id, set()).add(rule["id"])
     for point_id, rule_ids in writers.items():
         if len(rule_ids) > 1:
             problems.append(
                 f"points/{point_id}: written by {len(rule_ids)} enabled rules "
-                f"{rule_ids} — output contention"
+                f"{sorted(rule_ids)} — output contention"
             )
 
     # -- unit_id is the config-level device key and must be unique --------

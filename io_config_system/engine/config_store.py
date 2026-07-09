@@ -45,6 +45,42 @@ def backup_as_lkg(path: str | Path, doc: dict) -> None:
     atomic_write_json(lkg_path(path), doc)
 
 
+def versions_dir(path: str | Path) -> Path:
+    path = Path(path)
+    return path.with_name(f"{path.name}_versions")
+
+
+def save_version(path: str | Path, doc: dict) -> None:
+    """Keeps every config that was ever actually running, keyed by its own
+    `config_version` — not just the single most-recent LKG. This is what
+    lets Phase 6's "version history + one-click rollback" go back further
+    than one step; LKG (above) stays as the fast, single-step path Phase 4
+    already relies on. Re-saving the same config_version overwrites, so
+    calling this is always safe to repeat."""
+    version = doc.get("config_version")
+    if version is None:
+        raise ValueError("doc has no config_version; refusing to save an unkeyed version")
+    d = versions_dir(path)
+    atomic_write_json(d / f"v{version}.json", doc)
+
+
+def list_versions(path: str | Path) -> list[int]:
+    d = versions_dir(path)
+    if not d.exists():
+        return []
+    versions = []
+    for f in d.glob("v*.json"):
+        try:
+            versions.append(int(f.stem[1:]))
+        except ValueError:
+            continue
+    return sorted(versions)
+
+
+def read_version(path: str | Path, version: int) -> dict:
+    return read_json(versions_dir(path) / f"v{version}.json")
+
+
 class ConfigWatcher:
     """Polls a config file for a `config_version` change. Never raises on
     a missing file or a transient partial read (a concurrent atomic_write_json

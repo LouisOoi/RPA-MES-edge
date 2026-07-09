@@ -46,6 +46,7 @@ from .modbus_clients import build_clients, close_all, connect_all
 from .point_io import ReadResult, read_point
 from .point_io import write_point as _write_point_io
 from .poll_plan import build_plan
+from .test_write import TestWriteManager, TestWriteResult
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,7 @@ class PollEngine:
         self.plan = build_plan(io_config)
         self.snapshot = LiveSnapshot()
         self.rule_engine = rule_engine  # Phase 3, optional — see module docstring
+        self.test_write_manager = TestWriteManager()  # Phase 6, always present — see test_write.py
         self._debouncer = Debouncer(io_config["bus"]["poll_interval_ms"])
 
         self._device_by_unit_id = {d["unit_id"]: d for d in io_config["devices"]}
@@ -123,6 +125,8 @@ class PollEngine:
                 # Whether applied or rejected, THIS cycle still polls below
                 # with whichever plan is now current — a config change (or
                 # a bad one) never costs a missed poll cycle.
+
+        self.test_write_manager.apply_pending_reverts(self, now_ms)
 
         results: dict[str, ReadResult] = {}
         for entry in self.plan:
@@ -181,6 +185,8 @@ class PollEngine:
 
         if self._config_path is not None:
             config_store.backup_as_lkg(self._config_path, self.io_config)
+            if self.io_config.get("config_version") is not None:
+                config_store.save_version(self._config_path, self.io_config)
 
         old_clients = self.clients
         old_owns_clients = self._owns_clients
@@ -210,6 +216,31 @@ class PollEngine:
         except (FileNotFoundError, ValueError) as exc:
             return ReloadResult(ok=False, problems=[f"no usable LKG config: {exc}"])
         return self.reload(lkg_doc)
+
+    def rollback_to_version(self, version: int) -> ReloadResult:
+        """Like rollback_to_lkg but can go back further than one step —
+        Phase 6's "version history + one-click rollback," reusing the same
+        validated reload() path rather than a special-cased trust path."""
+        if self._config_path is None:
+            return ReloadResult(ok=False, problems=["no config_path configured; nothing to roll back to"])
+        try:
+            doc = config_store.read_version(self._config_path, version)
+        except FileNotFoundError:
+            return ReloadResult(ok=False, problems=[f"no saved version {version}"])
+        return self.reload(doc)
+
+    def list_config_versions(self) -> list[int]:
+        if self._config_path is None:
+            return []
+        return config_store.list_versions(self._config_path)
+
+    def request_test_write(
+        self, point_id: str, value: bool, *, confirm: bool, timeout_ms: int = 5000, now_ms: int | None = None,
+    ) -> TestWriteResult:
+        now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
+        return self.test_write_manager.request_write(
+            self, point_id, value, confirm=confirm, timeout_ms=timeout_ms, now_ms=now_ms,
+        )
 
     def write_point(self, point_id: str, value: bool) -> ReadResult:
         point = self._point_by_id[point_id]

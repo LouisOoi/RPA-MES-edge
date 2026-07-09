@@ -184,7 +184,7 @@ def test_mqtt_test_connection_endpoint(app_ctx):
             try:
                 conn, _ = server.accept()
                 conn.close()
-            except socket.timeout:
+            except (socket.timeout, OSError):
                 continue
 
     t = threading.Thread(target=accept_loop, daemon=True)
@@ -267,7 +267,7 @@ def test_full_commissioning_flow(app_ctx):
             try:
                 conn, _ = server.accept()
                 conn.close()
-            except socket.timeout:
+            except (socket.timeout, OSError):
                 continue
 
     t = threading.Thread(target=accept_loop, daemon=True)

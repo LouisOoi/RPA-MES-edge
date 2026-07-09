@@ -101,6 +101,16 @@ def test_io_v2_rejects_output_contention():
     assert any("output contention" in p for p in exc.value.problems)
 
 
+def test_io_v2_allows_same_rule_writing_same_point_in_then_and_else():
+    """then/else within ONE rule are mutually exclusive at runtime -- only
+    one branch ever fires per cycle -- so this is not contention with
+    itself, even though the same point is written from both branches."""
+    doc = load_seed("io_config.seed.v2.golden.json")
+    doc["rules"][0]["then"] = [{"action": "set", "point": "led_maint", "value": True}]
+    doc["rules"][0]["else"] = [{"action": "set", "point": "led_maint", "value": False}]
+    validate_io(doc)  # must not raise
+
+
 def test_io_v2_rejects_point_with_unknown_device():
     doc = load_seed("io_config.seed.v2.golden.json")
     doc["points"][0]["unit_id"] = 99

@@ -79,7 +79,7 @@ def test_check_mqtt_connection_succeeds_against_reachable_host(tmp_path):
             try:
                 conn, _ = server.accept()
                 conn.close()
-            except socket.timeout:
+            except (socket.timeout, OSError):
                 continue
 
     t = threading.Thread(target=accept_loop, daemon=True)
