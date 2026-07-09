@@ -9,15 +9,21 @@ browser, so Flask's test client stands in for "through the browser, no
 SSH": it exercises the exact same WSGI request/response path a real
 browser would, just without rendering HTML.
 
-The Phase 6 routes are only registered when `poll_engine` is given to
-create_app() — a Phase 5-style deployment (or Phase 5's own tests) that
-doesn't pass one simply doesn't get those routes at all, rather than
-getting them wired to a None and failing at request time.
+Plus Phase 7's admin-tier OTA routes, registered only when `ota_public_key`
+is given — the signing key is a server-side trust anchor injected by
+whoever deploys this app, never something a client supplies.
 
-Endpoints still not implemented: factory-reset, OTA (Phase 7).
+The Phase 6/7 routes are only registered when `poll_engine` (Phase 6) /
+`ota_public_key` (Phase 7) are given to create_app() — a Phase 5-style
+deployment (or Phase 5's own tests) that doesn't pass them simply doesn't
+get those routes at all, rather than getting them wired to a None and
+failing at request time.
+
+Endpoints still not implemented: factory-reset.
 """
 from __future__ import annotations
 
+import base64
 import time
 from functools import wraps
 from pathlib import Path
@@ -25,7 +31,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, session
 
 from engine import bus_scan as bus_scan_mod
-from engine import config_store, identity_store, io_export, system_store
+from engine import config_store, identity_store, io_export, ota, ota_state, system_store
 
 from .auth import TIER_LEVEL
 
@@ -47,6 +53,8 @@ def create_app(
     secret_key: str = "dev-only-change-me",
     poll_engine=None,
     io_config_path: str | Path | None = None,
+    ota_public_key=None,
+    ota_status_path: str | Path | None = None,
 ) -> Flask:
     app = Flask(__name__)
     app.secret_key = secret_key
@@ -230,5 +238,41 @@ def create_app(
                 return _error(422, "validation_failed", result.problems)
             _persist_io_config()
             return jsonify({"config_version": new_config["config_version"]})
+
+        if ota_public_key is not None:
+            @app.post("/api/ota/apply")
+            @require_tier("admin")
+            def ota_apply():
+                data = request.get_json(silent=True) or {}
+                manifest = data.get("manifest")
+                signature_b64 = data.get("signature")
+                if not manifest or not signature_b64:
+                    return _error(422, "validation_failed", ["manifest and signature are required"])
+                try:
+                    signature = base64.b64decode(signature_b64)
+                except (ValueError, TypeError):
+                    return _error(422, "validation_failed", ["signature is not valid base64"])
+
+                migrate_result = ota.verify_and_migrate(
+                    poll_engine.io_config, manifest, signature, public_key=ota_public_key,
+                )
+                if not migrate_result.ok:
+                    return _error(422, "validation_failed", migrate_result.problems)
+
+                result = ota.apply_and_reload(
+                    poll_engine, migrate_result.migrated_config,
+                    io_config_path=io_config_path, ident=poll_engine.ident, db_path=poll_engine.db_path,
+                    status_path=ota_status_path,
+                )
+                if not result.ok:
+                    status = 409 if result.rolled_back else 422
+                    return _error(status, "conflict" if result.rolled_back else "validation_failed", result.problems)
+                return jsonify({"ok": True, "config_version": result.config_version})
+
+            @app.get("/api/ota/status")
+            @require_tier("admin")
+            def ota_status():
+                status = ota_state.read_ota_status(ota_status_path) if ota_status_path else None
+                return jsonify(status or {"ok": None, "message": "no OTA has been applied yet"})
 
     return app
