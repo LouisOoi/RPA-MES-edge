@@ -100,3 +100,16 @@ class DeviceHealthTracker:
 
     def is_dead(self, unit_id: int) -> bool:
         return self._state.get(unit_id, _DeviceState()).dead
+
+    def snapshot(self) -> dict[int, dict]:
+        """Every unit_id this tracker has EVER recorded a result for,
+        with its current dead/failure state. A device that's never had a
+        poll cycle yet (e.g. right after construction, before run_cycle()
+        has run once) simply isn't in this dict — callers that want a
+        complete per-configured-device view (including "never polled
+        yet") should default missing unit_ids to healthy themselves; see
+        PollEngine.get_device_health()."""
+        return {
+            unit_id: {"dead": s.dead, "consecutive_failures": s.consecutive_failures}
+            for unit_id, s in self._state.items()
+        }

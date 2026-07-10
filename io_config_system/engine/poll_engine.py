@@ -150,6 +150,44 @@ class PollEngine:
                 "error": result.message,
             })
 
+    @property
+    def watchdog_is_hardware(self) -> bool:
+        """AR-02: True only if a real hardware-backed watchdog is wired
+        in — NullWatchdog (the default on every deployment without a
+        real device path configured) reports False, honestly, rather
+        than a UI having to guess from the class name."""
+        return not isinstance(self.watchdog, NullWatchdog)
+
+    def get_device_health(self) -> dict[int, dict]:
+        """AR-08: per-device health for every device CURRENTLY in
+        io_config, defaulting a device that's never had a poll cycle yet
+        (e.g. right after construction/reload, before run_cycle() has
+        run once) to healthy — "never polled" and "polled and fine" are
+        both "nothing wrong to report," which is the honest state to
+        show a caller before the first cycle ever runs."""
+        snapshot = self._device_health.snapshot()
+        return {
+            d["unit_id"]: snapshot.get(d["unit_id"], {"dead": False, "consecutive_failures": 0})
+            for d in self.io_config["devices"]
+        }
+
+    def get_backup_status(self) -> dict | None:
+        """AR-09: the last config backup push this engine attempted, if
+        the backup_client exposes one (NullConfigBackupClient does, via
+        its `.pushed` test/inspection list — see engine/config_backup.py).
+        A real MQTT-backed implementation isn't required to expose this;
+        callers get None rather than a guess when it doesn't."""
+        pushed = getattr(self.backup_client, "pushed", None)
+        if not pushed:
+            return None
+        _ident, _io_config, fingerprint = pushed[-1]
+        return {
+            "config_version": fingerprint.config_version,
+            "content_hash": fingerprint.content_hash,
+            "computed_at_ms": fingerprint.computed_at_ms,
+            "push_count": len(pushed),
+        }
+
     def run_cycle(self, *, now_ms: int | None = None, monotonic_ms: int | None = None) -> dict[str, ReadResult]:
         """One poll pass over every readable point: read -> debounce ->
         snapshot -> (optionally) rule evaluation. Returns {point_id:

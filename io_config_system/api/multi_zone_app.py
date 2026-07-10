@@ -231,6 +231,30 @@ def create_multi_zone_app(
         engine.test_write_manager.set_commissioning_mode(bool(data.get("enabled", False)))
         return jsonify({"commissioning_mode": engine.test_write_manager.commissioning_mode})
 
+    @app.get("/api/zone/<zone_id>/health-summary")
+    @require_tier("operator")
+    def health_summary(zone_id):
+        """Real (not mock) status behind the Overview/Bus tabs' AR
+        callouts: AR-02 whether a real hardware watchdog is wired in,
+        AR-08 per-device dead/consecutive-failure state, AR-03 how many
+        outputs are plc-owned (read-only from here, by design), and
+        AR-09 the last config-backup push this engine attempted, if
+        any. Nothing here is fabricated — see PollEngine.get_device_health/
+        get_backup_status/watchdog_is_hardware for what backs each field."""
+        engine, res = _zone_or_404(zone_id)
+        if res is None:
+            return _error(404, "zone_not_found")
+        plc_owned_count = sum(
+            1 for p in engine.io_config["points"]
+            if p.get("kind") == "digital_out" and p.get("owner") == "plc"
+        )
+        return jsonify({
+            "watchdog_hardware": engine.watchdog_is_hardware,
+            "device_health": {str(k): v for k, v in engine.get_device_health().items()},
+            "plc_owned_output_count": plc_owned_count,
+            "backup": engine.get_backup_status(),
+        })
+
     # -- zone-scoped, operator tier -----------------------------------------
 
     def _persist_io_config(zone_id, engine, res):
