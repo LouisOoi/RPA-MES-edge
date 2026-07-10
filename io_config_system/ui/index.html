@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RPA-MES-edge — Field Terminal</title>
+<style>
+  :root{
+    --sys-blue:#007AFF; --sys-green:#34C759; --sys-orange:#FF9500; --sys-red:#FF3B30; --sys-yellow:#FFCC00; --sys-teal:#30B0C7;
+    --bg-primary:#F2F2F7; --bg-secondary:#FFFFFF; --bg-tertiary:#E9E9EE;
+    --label-primary:#1C1C1E; --label-secondary:rgba(60,60,67,.6); --label-tertiary:rgba(60,60,67,.3);
+    --separator:rgba(60,60,67,.13);
+    --glass-bg:rgba(255,255,255,.72); --glass-blur:20px;
+    --radius-sm:10px; --radius-md:14px; --radius-lg:20px;
+    --shadow-1:0 1px 2px rgba(0,0,0,.04), 0 4px 14px rgba(0,0,0,.06);
+    --shadow-2:0 2px 6px rgba(0,0,0,.06), 0 10px 28px rgba(0,0,0,.09);
+  }
+  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  html,body{ margin:0; }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif;
+    color:var(--label-primary); background:var(--bg-primary); min-height:100vh;
+  }
+  a{ color:var(--sys-blue); text-decoration:none; }
+
+  /* ---- login ---- */
+  #login-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .login-card{ width:340px; background:var(--bg-secondary); border-radius:var(--radius-lg); box-shadow:var(--shadow-2); padding:32px; }
+  .login-card h1{ font-size:20px; margin:0 0 4px; letter-spacing:-.01em; }
+  .login-card .sub{ color:var(--label-secondary); font-size:13px; margin:0 0 24px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--label-secondary); margin-bottom:6px; }
+  .field input{
+    width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--separator);
+    background:var(--bg-primary); font-size:14px; color:var(--label-primary);
+  }
+  .field input:focus{ outline:2px solid var(--sys-blue); outline-offset:1px; }
+  .err{ color:var(--sys-red); font-size:12.5px; margin:8px 0 0; min-height:16px; }
+
+  .a-btn{ font:600 14px inherit; border-radius:980px; padding:10px 18px; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:6px; }
+  .a-btn.filled{ background:var(--sys-blue); color:#fff; width:100%; justify-content:center; }
+  .a-btn.filled:disabled{ opacity:.5; cursor:default; }
+  .a-btn.tinted{ background:color-mix(in srgb, var(--sys-blue) 14%, transparent); color:var(--sys-blue); }
+  .a-btn.gray{ background:var(--bg-tertiary); color:var(--label-primary); }
+  .a-btn.destructive{ background:color-mix(in srgb, var(--sys-red) 14%, transparent); color:var(--sys-red); }
+  .a-btn.small{ font-size:12.5px; padding:6px 12px; }
+
+  /* ---- app shell ---- */
+  #app-screen{ display:none; min-height:100vh; }
+  .topbar{
+    position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:14px; padding:0 20px; height:52px;
+    background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border-bottom:1px solid var(--separator);
+  }
+  .topbar .brand{ font-weight:700; font-size:14px; }
+  .topbar .spacer{ flex:1; }
+  .topbar .who{ font-size:13px; color:var(--label-secondary); }
+  .topbar .tier{ font-weight:700; color:var(--sys-blue); }
+
+  .layout{ display:flex; }
+  .sidebar{ width:230px; flex:0 0 auto; padding:16px 10px; border-right:1px solid var(--separator); min-height:calc(100vh - 52px); }
+  .sidebar h2{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--label-tertiary); margin:6px 10px 8px; }
+  .zone-item{
+    display:flex; align-items:center; gap:8px; padding:10px 10px; border-radius:var(--radius-sm); cursor:pointer; margin-bottom:2px;
+  }
+  .zone-item:hover{ background:var(--bg-tertiary); }
+  .zone-item.active{ background:color-mix(in srgb, var(--sys-blue) 12%, transparent); }
+  .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+  .dot.up{ background:var(--sys-green); }
+  .dot.down{ background:var(--sys-red); }
+  .zone-item .zid{ font-weight:600; font-size:13.5px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .crash-badge{ font-size:10.5px; font-weight:700; color:var(--sys-red); background:color-mix(in srgb, var(--sys-red) 14%, transparent); border-radius:999px; padding:1px 6px; }
+
+  .main{ flex:1; padding:22px 26px 60px; max-width:900px; }
+  .zone-header{ display:flex; align-items:baseline; gap:12px; margin-bottom:18px; }
+  .zone-header h1{ font-size:24px; margin:0; letter-spacing:-.02em; }
+  .a-badge{ font:600 11.5px inherit; padding:4px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; }
+  .a-badge.success{ background:color-mix(in srgb, var(--sys-green) 16%, transparent); color:var(--sys-green); }
+  .a-badge.info{ background:color-mix(in srgb, var(--sys-teal) 16%, transparent); color:var(--sys-teal); }
+  .a-badge.warn{ background:color-mix(in srgb, var(--sys-orange) 16%, transparent); color:var(--sys-orange); }
+  .a-badge.neutral{ background:var(--bg-tertiary); color:var(--label-secondary); }
+
+  .card{ background:var(--bg-secondary); border-radius:var(--radius-lg); box-shadow:var(--shadow-1); padding:18px 20px; margin-bottom:18px; }
+  .card h3{ font-size:15px; margin:0 0 12px; letter-spacing:-.005em; }
+  .card h3 .hint{ font-size:12px; font-weight:400; color:var(--label-tertiary); margin-left:8px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--label-tertiary); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--separator); }
+  td{ padding:8px 8px; border-bottom:1px solid var(--separator); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  .mono{ font-family:"SF Mono", ui-monospace, monospace; font-size:12px; }
+  .muted{ color:var(--label-secondary); }
+  .stale{ color:var(--sys-red); font-weight:600; }
+  .fresh{ color:var(--sys-green); font-weight:600; }
+
+  .ios-switch{ width:40px; height:24px; border-radius:14px; background:var(--bg-tertiary); position:relative; cursor:pointer; flex:0 0 auto; transition:background .15s; display:inline-block; }
+  .ios-switch.on{ background:var(--sys-green); }
+  .ios-switch i{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:left .15s; }
+  .ios-switch.on i{ left:18px; }
+  .ios-switch.disabled{ opacity:.4; cursor:default; }
+
+  .empty{ color:var(--label-tertiary); font-size:13px; padding:8px; }
+
+  /* ---- modal ---- */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:50; }
+  .modal-backdrop.show{ display:flex; }
+  .modal{ width:440px; max-height:80vh; overflow:auto; background:var(--bg-secondary); border-radius:var(--radius-lg); box-shadow:var(--shadow-2); padding:22px; }
+  .modal h3{ margin:0 0 6px; font-size:16px; }
+  .modal p{ color:var(--label-secondary); font-size:13px; line-height:1.5; margin:0 0 14px; }
+  .modal .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
+
+  .toast{
+    position:fixed; bottom:20px; right:20px; background:var(--label-primary); color:var(--bg-primary);
+    padding:10px 16px; border-radius:var(--radius-sm); font-size:13px; box-shadow:var(--shadow-2); z-index:60;
+    opacity:0; transform:translateY(8px); transition:opacity .2s, transform .2s; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+
+  .test-write-row{ display:flex; align-items:center; gap:10px; }
+  .test-write-row select{ padding:6px 8px; border-radius:8px; border:1px solid var(--separator); font-size:13px; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h1>RPA-MES-edge</h1>
+    <p class="sub">Field IO Terminal — multi-zone commissioning</p>
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" />
+    </div>
+    <button class="a-btn filled" id="login-btn">Sign In</button>
+    <p class="err" id="login-err"></p>
+  </div>
+</div>
+
+<div id="app-screen">
+  <div class="topbar">
+    <div class="brand">RPA-MES-edge</div>
+    <div class="spacer"></div>
+    <div class="who">Signed in as <span id="who-username"></span> · <span class="tier" id="who-tier"></span></div>
+    <button class="a-btn gray small" id="logout-btn">Log out</button>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <h2>Zones</h2>
+      <div id="zone-list"></div>
+    </div>
+    <div class="main" id="main-panel">
+      <div class="empty">Select a zone from the sidebar.</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="permit-modal">
+  <div class="modal">
+    <h3>Permit to edit</h3>
+    <p>This change alters rule wiring for at least one <span class="mono">owner:"edge"</span> output. Review the resulting output states before applying (AR-07).</p>
+    <table>
+      <thead><tr><th>Point</th><th>Safe state</th><th>Class</th><th>Rule-driven</th></tr></thead>
+      <tbody id="permit-rows"></tbody>
+    </table>
+    <div class="actions">
+      <button class="a-btn gray" id="permit-cancel">Cancel</button>
+      <button class="a-btn filled" id="permit-ack">Acknowledge &amp; Apply</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const state = {
+  tier: null, username: null,
+  zones: [], selectedZone: null,
+  ioConfig: null, liveTimer: null,
+  pendingReload: null, // { zoneId, config } awaiting permit acknowledgement
+};
+
+function $(sel){ return document.querySelector(sel); }
+function el(tag, attrs, ...children){
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") node.className = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) node.append(c instanceof Node ? c : document.createTextNode(c));
+  return node;
+}
+
+async function api(path, opts) {
+  const resp = await fetch(path, {
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  let body = null;
+  try { body = await resp.json(); } catch (e) { /* no body */ }
+  return { status: resp.status, body };
+}
+
+function showToast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+// ---- login ----
+
+$("#login-btn").addEventListener("click", doLogin);
+$("#password").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+
+async function doLogin() {
+  const username = $("#username").value.trim();
+  const password = $("#password").value;
+  $("#login-err").textContent = "";
+  if (!username || !password) { $("#login-err").textContent = "Enter a username and password."; return; }
+
+  const { status, body } = await api("/api/login", { method: "POST", body: JSON.stringify({ username, password }) });
+  if (status === 200) {
+    state.tier = body.tier; state.username = body.username;
+    enterApp();
+  } else if (status === 423) {
+    $("#login-err").textContent = (body.problems && body.problems[0]) || "Account locked.";
+  } else {
+    $("#login-err").textContent = "Invalid username or password.";
+  }
+}
+
+$("#logout-btn").addEventListener("click", async () => {
+  await api("/api/logout", { method: "POST" });
+  stopLivePolling();
+  state.tier = null; state.username = null; state.selectedZone = null;
+  $("#app-screen").style.display = "none";
+  $("#login-screen").style.display = "flex";
+  $("#password").value = "";
+});
+
+function enterApp() {
+  $("#login-screen").style.display = "none";
+  $("#app-screen").style.display = "block";
+  $("#who-username").textContent = state.username;
+  $("#who-tier").textContent = state.tier;
+  refreshZoneList();
+}
+
+// ---- zone list ----
+
+async function refreshZoneList() {
+  const { status, body } = await api("/api/zones");
+  if (status !== 200) return;
+  state.zones = body.zones;
+  renderZoneList();
+}
+
+function renderZoneList() {
+  const list = $("#zone-list");
+  list.innerHTML = "";
+  for (const z of state.zones) {
+    const item = el("div", {
+      class: "zone-item" + (state.selectedZone === z.zone_id ? " active" : ""),
+      onclick: () => selectZone(z.zone_id),
+    },
+      el("span", { class: "dot " + (z.running ? "up" : "down") }),
+      el("span", { class: "zid" }, z.zone_id),
+      z.crash_count > 0 ? el("span", { class: "crash-badge" }, String(z.crash_count)) : "",
+    );
+    list.append(item);
+  }
+  if (state.zones.length === 0) {
+    list.append(el("div", { class: "empty" }, "No zones registered."));
+  }
+}
+
+async function selectZone(zoneId) {
+  state.selectedZone = zoneId;
+  renderZoneList();
+  stopLivePolling();
+  await loadZoneDetail(zoneId);
+  startLivePolling(zoneId);
+}
+
+// ---- zone detail ----
+
+async function loadZoneDetail(zoneId) {
+  const [{ status, body }, zonesResp] = await Promise.all([
+    api(`/api/zone/${zoneId}/io`),
+    api("/api/zones"),
+  ]);
+  if (status !== 200) {
+    $("#main-panel").innerHTML = "";
+    $("#main-panel").append(el("div", { class: "empty" }, "Could not load this zone: " + JSON.stringify(body)));
+    return;
+  }
+  state.ioConfig = body;
+  state.zones = zonesResp.body.zones;
+  renderZoneList();
+  renderZoneDetail(zoneId);
+}
+
+function meta() {
+  return (state.zones.find((z) => z.zone_id === state.selectedZone)) || {};
+}
+
+function renderZoneDetail(zoneId) {
+  const cfg = state.ioConfig;
+  const m = meta();
+  const panel = $("#main-panel");
+  panel.innerHTML = "";
+
+  const medium = cfg.link ? cfg.link.medium : null;
+  panel.append(
+    el("div", { class: "zone-header" },
+      el("h1", {}, zoneId),
+      el("span", { class: "a-badge " + (m.running ? "success" : "warn") }, m.running ? "Running" : "Stopped"),
+      medium ? el("span", { class: "a-badge info" }, medium) : "",
+      el("span", { class: "a-badge neutral" }, "config v" + cfg.config_version),
+    ),
+  );
+
+  panel.append(buildLiveValuesCard(zoneId));
+  panel.append(buildIoCard(cfg));
+  panel.append(buildRulesCard(zoneId, cfg));
+  panel.append(buildTestWriteCard(zoneId, cfg));
+}
+
+function buildLiveValuesCard(zoneId) {
+  const card = el("div", { class: "card" },
+    el("h3", {}, "Live Values", el("span", { class: "hint" }, "auto-refreshes every 1.5s")),
+  );
+  const table = el("table", { id: "live-table" },
+    el("thead", {}, el("tr", {}, el("th", {}, "Point"), el("th", {}, "Value"), el("th", {}, "Status"))),
+    el("tbody", { id: "live-tbody" }, el("tr", {}, el("td", { colspan: "3", class: "empty" }, "Loading…"))),
+  );
+  card.append(table);
+  return card;
+}
+
+function buildIoCard(cfg) {
+  const card = el("div", { class: "card" }, el("h3", {}, "Devices & Points"));
+  const table = el("table", {},
+    el("thead", {}, el("tr", {},
+      el("th", {}, "Point"), el("th", {}, "Kind"), el("th", {}, "Owner"), el("th", {}, "Class"), el("th", {}, "Address"),
+    )),
+  );
+  const tbody = el("tbody", {});
+  for (const p of cfg.points) {
+    tbody.append(el("tr", {},
+      el("td", {}, el("div", {}, p.name), el("div", { class: "mono muted" }, p.id)),
+      el("td", {}, p.kind),
+      el("td", {}, p.owner ? el("span", { class: "a-badge " + (p.owner === "edge" ? "info" : "neutral") }, p.owner) : "—"),
+      el("td", {}, p.output_class || "—"),
+      el("td", { class: "mono muted" }, `${p.modbus.fn} @ ${p.modbus.address}`),
+    ));
+  }
+  table.append(tbody);
+  card.append(table);
+  return card;
+}
+
+function buildRulesCard(zoneId, cfg) {
+  const card = el("div", { class: "card" },
+    el("h3", {}, "Logic Rules", el("span", { class: "hint" }, "toggling a rule is an actuating change — AR-07 may gate it")),
+  );
+  if (!cfg.rules || cfg.rules.length === 0) {
+    card.append(el("div", { class: "empty" }, "No rules configured."));
+    return card;
+  }
+  const table = el("table", {},
+    el("thead", {}, el("tr", {}, el("th", {}, "Rule"), el("th", {}, "When"), el("th", {}, "Then"), el("th", {}, "Enabled"))),
+  );
+  const tbody = el("tbody", {});
+  for (const r of cfg.rules) {
+    const when = (r.when || []).map((c) => `${c.point} ${c.op}`).join(" & ") || "—";
+    const then = (r.then || []).map((a) => `${a.action} ${a.point}${a.value !== undefined ? "=" + a.value : ""}`).join(", ") || "—";
+    const sw = el("div", { class: "ios-switch" + (r.enabled ? " on" : ""), onclick: () => toggleRule(zoneId, r.id) }, el("i", {}));
+    tbody.append(el("tr", {},
+      el("td", { class: "mono" }, r.id), el("td", { class: "mono muted" }, when), el("td", { class: "mono muted" }, then),
+      el("td", {}, sw),
+    ));
+  }
+  table.append(tbody);
+  card.append(table);
+  return card;
+}
+
+function buildTestWriteCard(zoneId, cfg) {
+  const card = el("div", { class: "card" },
+    el("h3", {}, "Test Write", el("span", { class: "hint" }, "commissioning-mode manual pulse, auto-reverts")),
+  );
+  const outputs = cfg.points.filter((p) => p.kind === "digital_out" && p.owner === "edge");
+  if (outputs.length === 0) {
+    card.append(el("div", { class: "empty" }, "No edge-owned outputs on this zone."));
+    return card;
+  }
+  const commissionRow = el("div", { class: "test-write-row", style: "margin-bottom:14px;" },
+    el("div", { class: "ios-switch", id: "commission-switch", onclick: toggleCommissioning }, el("i", {})),
+    el("span", { class: "muted" }, "Commissioning mode (admin only)"),
+  );
+  card.append(commissionRow);
+
+  const select = el("select", { id: "tw-point" });
+  for (const p of outputs) select.append(el("option", { value: p.id }, `${p.name} (${p.id})`));
+
+  const row = el("div", { class: "test-write-row" },
+    select,
+    el("button", { class: "a-btn tinted small", onclick: () => sendTestWrite(zoneId, true) }, "Set ON"),
+    el("button", { class: "a-btn gray small", onclick: () => sendTestWrite(zoneId, false) }, "Set OFF"),
+  );
+  card.append(row);
+  return card;
+}
+
+async function toggleCommissioning() {
+  const sw = $("#commission-switch");
+  const enabling = !sw.classList.contains("on");
+  const { status, body } = await api(`/api/zone/${state.selectedZone}/commissioning-mode`, {
+    method: "POST", body: JSON.stringify({ enabled: enabling }),
+  });
+  if (status === 200) {
+    sw.classList.toggle("on", body.commissioning_mode);
+    showToast("Commissioning mode " + (body.commissioning_mode ? "enabled" : "disabled"));
+  } else if (status === 403) {
+    showToast("Admin tier required to toggle commissioning mode.");
+  } else {
+    showToast("Failed: " + JSON.stringify(body));
+  }
+}
+
+async function sendTestWrite(zoneId, value) {
+  const pointId = $("#tw-point").value;
+  const { status, body } = await api(`/api/zone/${zoneId}/test/write`, {
+    method: "POST", body: JSON.stringify({ point: pointId, value, confirm: true, timeout_ms: 5000 }),
+  });
+  if (status === 200) showToast(`Test write sent: ${pointId} = ${value}`);
+  else showToast("Test write failed: " + (body.problems ? body.problems[0] : JSON.stringify(body)));
+}
+
+// ---- live values polling ----
+
+async function pollLive(zoneId) {
+  const { status, body } = await api(`/api/zone/${zoneId}/live`);
+  if (status !== 200) return;
+  const tbody = $("#live-tbody");
+  if (!tbody) return;
+  const entries = Object.entries(body.points);
+  if (entries.length === 0) {
+    tbody.innerHTML = "";
+    tbody.append(el("tr", {}, el("td", { colspan: "3", class: "empty" }, "No values yet — zone may not be running.")));
+    return;
+  }
+  tbody.innerHTML = "";
+  for (const [pointId, v] of entries) {
+    tbody.append(el("tr", {},
+      el("td", { class: "mono" }, pointId),
+      el("td", { class: "mono" }, String(v.value)),
+      el("td", {}, v.stale ? el("span", { class: "stale" }, "STALE") : el("span", { class: "fresh" }, "live")),
+    ));
+  }
+}
+
+function startLivePolling(zoneId) {
+  pollLive(zoneId);
+  state.liveTimer = setInterval(() => pollLive(zoneId), 1500);
+}
+function stopLivePolling() {
+  if (state.liveTimer) { clearInterval(state.liveTimer); state.liveTimer = null; }
+}
+
+// ---- rule toggle -> reload() -> AR-07 permit gate ----
+
+async function toggleRule(zoneId, ruleId) {
+  const cfg = JSON.parse(JSON.stringify(state.ioConfig));
+  const rule = cfg.rules.find((r) => r.id === ruleId);
+  rule.enabled = !rule.enabled;
+  await pushIoConfig(zoneId, cfg);
+}
+
+async function pushIoConfig(zoneId, cfg, { ack } = {}) {
+  const payload = { ...cfg };
+  delete payload.config_version; delete payload.updated_at; delete payload.updated_by;
+  if (ack) payload.permit_acknowledged = true;
+
+  const { status, body } = await api(`/api/zone/${zoneId}/io`, { method: "PUT", body: JSON.stringify(payload) });
+  if (status === 200) {
+    showToast("Applied — config v" + body.config_version);
+    await loadZoneDetail(zoneId);
+  } else if (status === 409 && body.error === "permit_required") {
+    state.pendingReload = { zoneId, cfg };
+    showPermitModal(body.pending_output_states);
+  } else {
+    showToast("Failed: " + (body.problems ? body.problems[0] : JSON.stringify(body)));
+  }
+}
+
+function showPermitModal(pendingStates) {
+  const rows = $("#permit-rows");
+  rows.innerHTML = "";
+  for (const [pointId, s] of Object.entries(pendingStates)) {
+    rows.append(el("tr", {},
+      el("td", { class: "mono" }, pointId),
+      el("td", {}, String(s.safe_state)),
+      el("td", {}, s.output_class || "—"),
+      el("td", {}, s.driven_by_rule ? "yes" : "no"),
+    ));
+  }
+  $("#permit-modal").classList.add("show");
+}
+
+$("#permit-cancel").addEventListener("click", () => {
+  state.pendingReload = null;
+  $("#permit-modal").classList.remove("show");
+});
+$("#permit-ack").addEventListener("click", async () => {
+  $("#permit-modal").classList.remove("show");
+  if (!state.pendingReload) return;
+  const { zoneId, cfg } = state.pendingReload;
+  state.pendingReload = null;
+  await pushIoConfig(zoneId, cfg, { ack: true });
+});
+</script>
+</body>
+</html>

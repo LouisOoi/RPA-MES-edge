@@ -23,8 +23,9 @@ from __future__ import annotations
 
 import time
 from functools import wraps
+from pathlib import Path
 
-from flask import Flask, jsonify, request, session
+from flask import Flask, jsonify, request, send_from_directory, session
 
 from engine import bus_scan as bus_scan_mod
 from engine import config_store, identity_store, io_export, system_store
@@ -32,6 +33,8 @@ from engine.event_store import log_event
 from engine.zone_orchestrator import ZoneOrchestrator
 
 from .auth import TIER_LEVEL, AccountLocked
+
+UI_DIR = Path(__file__).resolve().parent.parent / "ui"
 
 
 def _error(status: int, error_code: str, problems: list[str] | None = None, extra: dict | None = None):
@@ -74,7 +77,7 @@ def create_multi_zone_app(
         # see that module for the full reasoning.
         @app.before_request
         def _reject_insecure_transport():
-            if request.path == "/api/status":
+            if request.path in ("/", "/api/status"):
                 return None
             is_secure = request.is_secure or request.headers.get("X-Forwarded-Proto", "").lower() == "https"
             if not is_secure:
@@ -102,6 +105,21 @@ def create_multi_zone_app(
         return orchestrator.get_engine(zone_id), zone_resources[zone_id]
 
     # -- shared, not zone-scoped ------------------------------------------
+
+    @app.get("/")
+    def index():
+        return jsonify({"service": "io_config_system multi-zone API", "ok": True})
+
+    @app.get("/ui")
+    @app.get("/ui/")
+    def ui_index():
+        """The functional-MVP web UI (ui/index.html) — a single-file
+        vanilla-JS SPA that calls the exact same /api/... routes below,
+        with the browser's session cookie (same-origin, no CORS needed).
+        Deliberately served from THIS Flask process rather than a
+        separate static host, so login/session/AR-05 lockout work
+        exactly like they do for any other client of this API."""
+        return send_from_directory(UI_DIR, "index.html")
 
     @app.post("/api/login")
     def login():
