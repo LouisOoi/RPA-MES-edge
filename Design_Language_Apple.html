@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field Terminal — Apple-style Design Language</title>
+<style>
+  :root{
+    /* ---- Apple system colors (light) ---- */
+    --sys-blue:#007AFF; --sys-green:#34C759; --sys-orange:#FF9500; --sys-red:#FF3B30; --sys-yellow:#FFCC00; --sys-teal:#30B0C7;
+
+    --bg-primary:#F2F2F7;          /* systemGroupedBackground */
+    --bg-secondary:#FFFFFF;         /* secondarySystemGroupedBackground / cards */
+    --bg-tertiary:#E9E9EE;
+
+    --label-primary:#1C1C1E;
+    --label-secondary:rgba(60,60,67,.6);
+    --label-tertiary:rgba(60,60,67,.3);
+    --separator:rgba(60,60,67,.13);
+
+    --glass-bg:rgba(255,255,255,.62);
+    --glass-border:rgba(255,255,255,.5);
+    --glass-blur:20px;
+
+    --radius-sm:10px; --radius-md:14px; --radius-lg:20px; --radius-xl:28px;
+    --shadow-1:0 1px 2px rgba(0,0,0,.04), 0 4px 14px rgba(0,0,0,.06);
+    --shadow-2:0 2px 6px rgba(0,0,0,.06), 0 10px 28px rgba(0,0,0,.09);
+  }
+  html[data-theme="dark"]{
+    --sys-blue:#0A84FF; --sys-green:#30D158; --sys-orange:#FF9F0A; --sys-red:#FF453A; --sys-yellow:#FFD60A; --sys-teal:#40C8E0;
+
+    --bg-primary:#000000;
+    --bg-secondary:#1C1C1E;
+    --bg-tertiary:#2C2C2E;
+
+    --label-primary:#F2F2F7;
+    --label-secondary:rgba(235,235,245,.6);
+    --label-tertiary:rgba(235,235,245,.3);
+    --separator:rgba(84,84,88,.6);
+
+    --glass-bg:rgba(30,30,32,.55);
+    --glass-border:rgba(255,255,255,.08);
+
+    --shadow-1:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.35);
+    --shadow-2:0 2px 6px rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.45);
+  }
+  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  html,body{ margin:0; }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Helvetica,Arial,sans-serif;
+    color:var(--label-primary); background:var(--bg-primary); min-height:100vh; position:relative;
+    transition:background-color .25s, color .25s;
+  }
+
+  /* ---- decorative blurred color blobs so the glass materials have something to blur ---- */
+  .blob-field{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .blob{ position:absolute; border-radius:50%; filter:blur(90px); opacity:.5; background:radial-gradient(circle at 35% 30%, var(--blob-from), var(--blob-to)); }
+  .blob.b1{ width:460px; height:460px; top:-140px; left:-100px; }
+  .blob.b2{ width:420px; height:420px; top:140px; right:-120px; }
+  .blob.b3{ width:380px; height:380px; bottom:-160px; left:30%; }
+
+  :root{ --blob-from:#FFFFFF; --blob-to:#4E9BFF; }
+  html:not([data-theme="dark"]) .blob{ opacity:.42; }
+
+  html[data-theme="dark"]{ --blob-from:#3A3D45; --blob-to:#000000; }
+  html[data-theme="dark"] .blob{ opacity:.55; }
+
+  /* ---------------- switcher ---------------- */
+  .switcher{
+    position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:0; padding:0 24px;
+    background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border-bottom:1px solid var(--separator);
+  }
+  .switcher button{ border:none; background:none; padding:16px 18px; font:600 14px inherit; color:var(--label-secondary); cursor:pointer; border-bottom:2px solid transparent; }
+  .switcher button.active{ color:var(--sys-blue); border-bottom-color:var(--sys-blue); }
+  .sw-spacer{ flex:1; }
+  .theme-toggle{
+    display:flex; align-items:center; gap:8px; border:1px solid var(--separator); border-radius:999px;
+    padding:7px 14px; background:var(--bg-secondary); color:var(--label-secondary); font:600 12.5px inherit; cursor:pointer;
+  }
+  .view{ display:none; position:relative; z-index:1; }
+  .view.active{ display:block; }
+
+  /* ================= STYLE GUIDE ================= */
+  .guide{ max-width:1080px; margin:0 auto; padding:40px 28px 90px; }
+  .guide h1{ font-size:34px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
+  .guide .lede{ color:var(--label-secondary); font-size:15px; line-height:1.6; max-width:620px; margin:0 0 40px; }
+  .g-section{ margin-bottom:44px; }
+  .g-section h2{ font-size:20px; font-weight:700; letter-spacing:-.01em; margin:0 0 4px; }
+  .g-section .g-sub{ color:var(--label-secondary); font-size:13.5px; margin:0 0 16px; }
+
+  .swatches{ display:grid; grid-template-columns:repeat(6,1fr); gap:10px; }
+  .swatch{ border-radius:var(--radius-md); padding:14px 12px; min-height:80px; display:flex; flex-direction:column; justify-content:space-between; color:#fff; }
+  .swatch .name{ font:700 11.5px inherit; }
+  .swatch .hex{ font:500 10.5px "SF Mono", ui-monospace, monospace; opacity:.85; }
+
+  .type-row{ display:flex; align-items:baseline; gap:18px; padding:12px 0; border-bottom:1px solid var(--separator); }
+  .type-row:last-child{ border-bottom:none; }
+  .type-row .tlabel{ width:150px; flex-shrink:0; font:500 11.5px "SF Mono", monospace; color:var(--label-secondary); }
+
+  .btn-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .a-btn{ font:600 15px inherit; border-radius:980px; padding:10px 20px; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:6px; }
+  .a-btn.filled{ background:var(--sys-blue); color:#fff; }
+  .a-btn.tinted{ background:color-mix(in srgb, var(--sys-blue) 15%, transparent); color:var(--sys-blue); }
+  .a-btn.gray{ background:var(--bg-tertiary); color:var(--label-primary); }
+  .a-btn.plain{ background:none; color:var(--sys-blue); padding:10px 6px; }
+  .a-btn.destructive{ background:color-mix(in srgb, var(--sys-red) 15%, transparent); color:var(--sys-red); }
+
+  .switch-demo{ display:flex; align-items:center; gap:14px; }
+  .ios-switch{ width:51px; height:31px; border-radius:16px; background:var(--bg-tertiary); position:relative; cursor:pointer; flex:0 0 auto; transition:background .2s; }
+  .ios-switch.on{ background:var(--sys-green); }
+  .ios-switch i{ position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:left .2s; }
+  .ios-switch.on i{ left:22px; }
+
+  .seg{ display:inline-flex; background:var(--bg-tertiary); border-radius:9px; padding:2px; }
+  .seg button{ border:none; background:none; padding:6px 16px; font:600 13px inherit; color:var(--label-primary); border-radius:7px; cursor:pointer; }
+  .seg button.active{ background:var(--bg-secondary); box-shadow:var(--shadow-1); }
+
+  .badge-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .a-badge{ font:600 12.5px inherit; padding:5px 12px; border-radius:999px; display:inline-flex; align-items:center; gap:6px; }
+  .a-badge.success{ background:color-mix(in srgb, var(--sys-green) 16%, transparent); color:var(--sys-green); }
+  .a-badge.warn{ background:color-mix(in srgb, var(--sys-orange) 16%, transparent); color:var(--sys-orange); }
+  .a-badge.error{ background:color-mix(in srgb, var(--sys-red) 16%, transparent); color:var(--sys-red); }
+  .a-badge .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+  .card-demo-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .glass-card{
+    background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-1);
+  }
+  .solid-card{ background:var(--bg-secondary); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-1); }
+  .clabel{ font:600 11px inherit; color:var(--label-secondary); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
+  .cval{ font-size:26px; font-weight:700; letter-spacing:-.01em; }
+
+  /* ================= APPLIED PREVIEW ================= */
+  .app-shell{ display:flex; min-height:calc(100vh - 51px); }
+  .sidebar{
+    width:220px; flex-shrink:0; padding:20px 12px;
+    background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border-right:1px solid var(--separator);
+  }
+  .sidebar .sb-title{ font:700 12px inherit; color:var(--label-tertiary); text-transform:uppercase; letter-spacing:.04em; padding:8px 10px 6px; }
+  .sb-item{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font:600 14px inherit; color:var(--label-primary); cursor:pointer; margin-bottom:1px; }
+  .sb-item.active{ background:var(--sys-blue); color:#fff; }
+  .sb-item .dot-icon{ width:8px; height:8px; border-radius:50%; background:currentColor; opacity:.7; }
+
+  .main{ flex:1; padding:26px 30px 60px; max-width:1180px; }
+  .toolbar{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px; }
+  .toolbar h1{ font-size:28px; font-weight:700; letter-spacing:-.02em; margin:0; }
+  .toolbar .tb-meta{ font:500 13px "SF Mono", monospace; color:var(--label-secondary); }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:28px; }
+  .kpi-card{ background:var(--bg-secondary); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-1); }
+  .kpi-card .klabel{ font:600 11.5px inherit; color:var(--label-secondary); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px; }
+  .kpi-card .kval{ font-size:28px; font-weight:700; letter-spacing:-.01em; }
+  .kpi-card .ktrend{ font:600 12px inherit; margin-top:6px; }
+  .ktrend.up{ color:var(--sys-green); }
+  .ktrend.flat{ color:var(--label-secondary); }
+
+  .section-title{ font-size:17px; font-weight:700; letter-spacing:-.01em; margin:0 0 12px; }
+
+  .zone-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:30px; }
+  .zone-card{ background:var(--bg-secondary); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-1); cursor:pointer; transition:box-shadow .15s, transform .15s; }
+  .zone-card:hover{ box-shadow:var(--shadow-2); transform:translateY(-1px); }
+  .zone-card .zhead{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .zone-card h3{ font-size:15.5px; font-weight:700; margin:0; }
+  .zone-card .zrow{ display:flex; justify-content:space-between; font-size:13px; color:var(--label-secondary); padding:5px 0; border-top:1px solid var(--separator); }
+  .zone-card .zrow:first-of-type{ border-top:none; padding-top:0; }
+  .zone-card .zrow b{ color:var(--label-primary); font-weight:600; font-family:"SF Mono", monospace; font-size:12.5px; }
+
+  /* grouped list, iOS Settings-style */
+  .grouped-list{ background:var(--bg-secondary); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-1); }
+  .g-row{ display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid var(--separator); }
+  .g-row:last-child{ border-bottom:none; }
+  .g-row .g-left{ display:flex; align-items:center; gap:12px; }
+  .g-icon{ width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; flex-shrink:0; }
+  .g-title{ font-size:14.5px; font-weight:500; }
+  .g-sub2{ font-size:12px; color:var(--label-secondary); font-family:"SF Mono", monospace; margin-top:1px; }
+  .g-right{ font-size:13.5px; color:var(--label-secondary); }
+  .chev{ color:var(--label-tertiary); font-size:17px; margin-left:6px; }
+</style>
+</head>
+<body>
+
+<div class="blob-field">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+</div>
+
+<div class="switcher">
+  <button class="active" data-view="guide">Design Language</button>
+  <button data-view="preview">Applied Preview</button>
+  <div class="sw-spacer"></div>
+  <button class="theme-toggle" id="themeToggle" type="button">
+    <span id="themeLabel">Dark mode</span>
+  </button>
+</div>
+
+<!-- ============ STYLE GUIDE ============ -->
+<div class="view active" id="guide">
+  <div class="guide">
+    <h1>Field Terminal — Apple-style</h1>
+    <p class="lede">System colors, translucent materials, continuous corners, and San Francisco's system font. Content leads, chrome recedes — color is reserved for status and action, never decoration.</p>
+
+    <div class="g-section">
+      <h2>System colors</h2>
+      <p class="g-sub">Blue = primary action. Green = healthy/success. Orange = caution. Red = fault. Everything else stays neutral gray.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:var(--sys-blue)"><span class="name">Blue</span><span class="hex">#007AFF</span></div>
+        <div class="swatch" style="background:var(--sys-green)"><span class="name">Green</span><span class="hex">#34C759</span></div>
+        <div class="swatch" style="background:var(--sys-orange)"><span class="name">Orange</span><span class="hex">#FF9500</span></div>
+        <div class="swatch" style="background:var(--sys-red)"><span class="name">Red</span><span class="hex">#FF3B30</span></div>
+        <div class="swatch" style="background:var(--sys-teal)"><span class="name">Teal</span><span class="hex">#30B0C7</span></div>
+        <div class="swatch" style="background:var(--sys-yellow);color:#3D2E00"><span class="name">Yellow</span><span class="hex">#FFCC00</span></div>
+      </div>
+    </div>
+
+    <div class="g-section">
+      <h2>Materials</h2>
+      <p class="g-sub">Translucent "glass" for chrome that floats above content (toolbars, sidebars); solid surfaces for content itself. Glass only works with something colorful behind it to blur — that's what the background blobs are for.</p>
+      <div class="card-demo-row">
+        <div class="glass-card"><div class="clabel">Glass material</div><div class="cval">Sidebar / Toolbar</div></div>
+        <div class="solid-card"><div class="clabel">Solid surface</div><div class="cval">Cards / Content</div></div>
+        <div class="solid-card"><div class="clabel">Grouped list</div><div class="cval">Settings rows</div></div>
+      </div>
+    </div>
+
+    <div class="g-section">
+      <h2>Type</h2>
+      <p class="g-sub">San Francisco (system font) — tight letter-spacing on large sizes, SF Mono for identifiers and technical values.</p>
+      <div class="type-row"><span class="tlabel">Large title / 34</span><span style="font-size:34px;font-weight:700;letter-spacing:-.02em;">Field Terminal</span></div>
+      <div class="type-row"><span class="tlabel">Title 1 / 28</span><span style="font-size:28px;font-weight:700;letter-spacing:-.02em;">Zone 1 — Robot Cell</span></div>
+      <div class="type-row"><span class="tlabel">Headline / 17 · 600</span><span style="font-size:17px;font-weight:600;">Live IO Points</span></div>
+      <div class="type-row"><span class="tlabel">Body / 15</span><span style="font-size:15px;">Every write is validated, logged, and reversible.</span></div>
+      <div class="type-row"><span class="tlabel">Footnote / 13</span><span style="font-size:13px;color:var(--label-secondary);">Applied Jul 9 · by operator@site</span></div>
+      <div class="type-row"><span class="tlabel">Mono / 13</span><span style="font-family:'SF Mono',monospace;font-size:13px;">PLT02 / L03 / Z01 / ST01 · coil 3</span></div>
+    </div>
+
+    <div class="g-section">
+      <h2>Controls</h2>
+      <div class="btn-row" style="margin-bottom:18px;">
+        <button class="a-btn filled">Validate &amp; Apply</button>
+        <button class="a-btn tinted">Test Write</button>
+        <button class="a-btn gray">Roll back</button>
+        <button class="a-btn plain">Discard draft</button>
+        <button class="a-btn destructive">Factory reset</button>
+      </div>
+      <div class="switch-demo" style="margin-bottom:18px;">
+        <div class="ios-switch on" onclick="this.classList.toggle('on')"><i></i></div>
+        <span style="font-size:14px;">Commissioning mode</span>
+      </div>
+      <div class="seg">
+        <button class="active">Bus Settings</button>
+        <button>Points</button>
+        <button>Rules</button>
+        <button>Live</button>
+      </div>
+    </div>
+
+    <div class="g-section">
+      <h2>Status badges</h2>
+      <div class="badge-row">
+        <span class="a-badge success"><span class="dot"></span>Online</span>
+        <span class="a-badge warn"><span class="dot"></span>Degraded</span>
+        <span class="a-badge error"><span class="dot"></span>Offline</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APPLIED PREVIEW ============ -->
+<div class="view" id="preview">
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sb-title">Field Terminal</div>
+      <div class="sb-item active"><span class="dot-icon"></span>Overview</div>
+      <div class="sb-item"><span class="dot-icon"></span>Zones</div>
+      <div class="sb-item"><span class="dot-icon"></span>Rules</div>
+      <div class="sb-item"><span class="dot-icon"></span>Versions</div>
+      <div class="sb-title" style="margin-top:14px;">Admin</div>
+      <div class="sb-item"><span class="dot-icon"></span>Identity</div>
+      <div class="sb-item"><span class="dot-icon"></span>Network &amp; Broker</div>
+      <div class="sb-item"><span class="dot-icon"></span>Updates</div>
+    </div>
+
+    <div class="main">
+      <div class="toolbar">
+        <h1>Overview</h1>
+        <span class="tb-meta">Demo Plant · Line L03 · 3 zones</span>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="klabel">Uptime (30d)</div><div class="kval">99.4%</div><div class="ktrend up">▲ 0.2%</div></div>
+        <div class="kpi-card"><div class="klabel">Zones Online</div><div class="kval">2 / 3</div><div class="ktrend flat">1 degraded</div></div>
+        <div class="kpi-card"><div class="klabel">Active Alarms</div><div class="kval">0</div><div class="ktrend flat">last 24h</div></div>
+        <div class="kpi-card"><div class="klabel">Config Version</div><div class="kval">v7</div><div class="ktrend flat">applied Jul 9</div></div>
+      </div>
+
+      <div class="section-title">Zones</div>
+      <div class="zone-grid">
+        <div class="zone-card">
+          <div class="zhead"><h3>Zone 1 — Robot Cell</h3><span class="a-badge success"><span class="dot"></span>Online</span></div>
+          <div class="zrow"><span>Wireless</span><b>-58 dBm</b></div>
+          <div class="zrow"><span>RTU response</span><b>12 ms</b></div>
+          <div class="zrow"><span>Identity</span><b>ST01</b></div>
+        </div>
+        <div class="zone-card">
+          <div class="zhead"><h3>Zone 2 — Welding Jig</h3><span class="a-badge warn"><span class="dot"></span>Degraded</span></div>
+          <div class="zrow"><span>Wireless</span><b>-79 dBm</b></div>
+          <div class="zrow"><span>RTU response</span><b>31 ms</b></div>
+          <div class="zrow"><span>Identity</span><b>ST02</b></div>
+        </div>
+        <div class="zone-card">
+          <div class="zhead"><h3>Zone 3 — Leak Test</h3><span class="a-badge success"><span class="dot"></span>Online</span></div>
+          <div class="zrow"><span>Wireless</span><b>-52 dBm</b></div>
+          <div class="zrow"><span>RTU response</span><b>9 ms</b></div>
+          <div class="zrow"><span>Identity</span><b>ST03</b></div>
+        </div>
+      </div>
+
+      <div class="section-title">Zone 2 — Devices &amp; IO Points</div>
+      <div class="grouped-list">
+        <div class="g-row">
+          <div class="g-left"><div class="g-icon" style="background:var(--sys-red);">A</div>
+            <div><div class="g-title">Alarm — Beacon</div><div class="g-sub2">unit 1 · write_coil @0</div></div>
+          </div>
+          <div class="g-right">OFF <span class="chev">›</span></div>
+        </div>
+        <div class="g-row">
+          <div class="g-left"><div class="g-icon" style="background:var(--sys-orange);">C</div>
+            <div><div class="g-title">Welding Jig — Clamp Closed</div><div class="g-sub2">unit 1 · read_coils @2</div></div>
+          </div>
+          <div class="g-right">Stale <span class="chev">›</span></div>
+        </div>
+        <div class="g-row">
+          <div class="g-left"><div class="g-icon" style="background:var(--sys-blue);">W</div>
+            <div><div class="g-title">Welding Jig — Weld Active</div><div class="g-sub2">unit 1 · write_coil @3</div></div>
+          </div>
+          <div class="g-right">OFF <span class="chev">›</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll(".switcher button[data-view]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".switcher button[data-view]").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+      document.getElementById(btn.dataset.view).classList.add("active");
+    });
+  });
+  document.querySelectorAll(".seg button").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+    });
+  });
+  document.querySelectorAll(".sb-item").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      document.querySelectorAll(".sb-item").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+    });
+  });
+
+  const themeToggle = document.getElementById("themeToggle");
+  const themeLabel = document.getElementById("themeLabel");
+  function setTheme(mode){
+    document.documentElement.setAttribute("data-theme", mode);
+    themeLabel.textContent = mode === "dark" ? "Light mode" : "Dark mode";
+  }
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  setTheme(prefersDark ? "dark" : "light");
+  themeToggle.addEventListener("click", ()=>{
+    const current = document.documentElement.getAttribute("data-theme");
+    setTheme(current === "dark" ? "light" : "dark");
+  });
+</script>
+
+</body>
+</html>

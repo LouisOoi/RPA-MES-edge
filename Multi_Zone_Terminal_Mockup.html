@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Multi-Zone Edge Terminal — UI Mockup</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --panel:#ffffff; --border:#e2e8f0; --border-strong:#cbd5e1;
+    --text:#0f172a; --text-2:#64748b; --accent:#2563eb; --accent-2:#1d4ed8;
+    --good:#16a34a; --good-bg:#ecfdf5; --warn:#d97706; --warn-bg:#fffbeb; --bad:#dc2626; --bad-bg:#fef2f2;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+
+  .topbar{ background:#0f172a; color:#fff; padding:14px 28px; display:flex; align-items:center; justify-content:space-between; }
+  .topbar .brand{ display:flex; align-items:center; gap:10px; }
+  .topbar .brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px rgba(22,163,74,.25); }
+  .topbar h1{ font-size:15px; margin:0; font-weight:600; }
+  .topbar .sub{ font-size:12px; color:#94a3b8; }
+  .topbar .user{ font-size:12.5px; color:#cbd5e1; display:flex; align-items:center; gap:8px; }
+  .topbar .avatar{ width:26px; height:26px; border-radius:50%; background:#334155; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+
+  .tabs{ display:flex; gap:4px; padding:0 24px; background:var(--panel); border-bottom:1px solid var(--border); }
+  .tab{ padding:13px 16px; font-size:13.5px; color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent; display:flex; align-items:center; gap:7px; }
+  .tab:hover{ color:var(--text); }
+  .tab.active{ color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+  .tab .chip{ font-size:10.5px; padding:1px 6px; border-radius:999px; font-weight:700; }
+  .chip.online{ background:var(--good-bg); color:var(--good); }
+  .chip.degraded{ background:var(--warn-bg); color:var(--warn); }
+  .chip.offline{ background:var(--bad-bg); color:var(--bad); }
+
+  .content{ padding:24px 28px 60px; max-width:1180px; margin:0 auto; }
+  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:22px; }
+  @media (max-width:900px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .zone-card{ cursor:pointer; transition:box-shadow .15s, border-color .15s; }
+  .zone-card:hover{ box-shadow:0 6px 18px rgba(15,23,42,.08); border-color:var(--border-strong); }
+  .zone-card .head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .zone-card h3{ margin:0; font-size:15px; }
+  .status-pill{ font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; }
+  .status-pill.online{ background:var(--good-bg); color:var(--good); }
+  .status-pill.degraded{ background:var(--warn-bg); color:var(--warn); }
+  .status-pill.offline{ background:var(--bad-bg); color:var(--bad); }
+  .zone-card .link-row{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-2); padding:5px 0; border-top:1px solid var(--border); }
+  .zone-card .link-row:first-of-type{ border-top:none; padding-top:0; }
+  .zone-card .link-val{ font-weight:600; color:var(--text); }
+  .zone-card .foot{ margin-top:12px; font-size:12px; color:var(--accent); font-weight:600; }
+
+  .section-title{ font-size:13px; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:.03em; margin:0 0 12px; }
+
+  .zone-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .zone-header h2{ margin:0; font-size:20px; }
+  .zone-header .meta{ font-size:12.5px; color:var(--text-2); margin-top:3px; }
+  .badge-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .badge{ font-size:11.5px; font-weight:600; padding:5px 11px; border-radius:8px; border:1px solid var(--border); background:#f8fafc; color:var(--text-2); }
+  .badge.confirmed{ background:var(--good-bg); border-color:#bbf7d0; color:var(--good); }
+
+  .two-col{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:900px){ .two-col{ grid-template-columns:1fr; } }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-2); padding:8px 10px; border-bottom:1px solid var(--border); }
+  td{ padding:9px 10px; border-bottom:1px solid var(--border); color:var(--text); }
+  tr:last-child td{ border-bottom:none; }
+  .val-pill{ font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:999px; display:inline-block; min-width:38px; text-align:center; }
+  .val-pill.on{ background:var(--good-bg); color:var(--good); }
+  .val-pill.off{ background:#f1f5f9; color:var(--text-2); }
+  .stale-flag{ font-size:10.5px; color:var(--bad); font-weight:600; margin-left:6px; }
+
+  .link-card .link-item{ display:flex; align-items:center; justify-content:between; gap:10px; padding:11px 0; border-bottom:1px solid var(--border); }
+  .link-card .link-item:last-child{ border-bottom:none; }
+  .link-item .li-left{ display:flex; align-items:center; gap:9px; }
+  .link-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .link-dot.online{ background:var(--good); }
+  .link-dot.degraded{ background:var(--warn); }
+  .link-dot.offline{ background:var(--bad); }
+  .li-title{ font-size:13px; font-weight:600; }
+  .li-sub{ font-size:11.5px; color:var(--text-2); }
+  .li-right{ margin-left:auto; text-align:right; }
+  .li-right .li-metric{ font-size:12.5px; font-weight:600; }
+  .li-right .li-metric-sub{ font-size:10.5px; color:var(--text-2); }
+
+  .event-feed{ margin-top:16px; }
+  .event-row{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .event-row:last-child{ border-bottom:none; }
+  .event-time{ color:var(--text-2); min-width:62px; }
+  .event-type{ font-weight:600; min-width:110px; }
+  .event-type.fault{ color:var(--bad); }
+  .event-type.write{ color:var(--accent-2); }
+  .event-type.config{ color:var(--text-2); }
+
+  .mockup-flag{ display:flex; align-items:center; gap:8px; background:#fffbeb; border:1px solid #fde68a; color:#92400e; font-size:12px; padding:9px 14px; border-radius:9px; margin-bottom:20px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>Field Terminal — Multi-Zone (Windows)</h1>
+      <div class="sub">Site: Demo Plant &nbsp;·&nbsp; Line L03 &nbsp;·&nbsp; 3 zones configured</div>
+    </div>
+  </div>
+  <div class="user"><div class="avatar">A1</div> admin1</div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="content" id="content"></div>
+
+<script>
+const ZONES = [
+  {
+    id: "zone1", name: "Zone 1 — Robot Cell", status: "online",
+    identity: { plant_id: "PLT02", line_id: "L03", zone_id: "Z01", station_id: "ST01" },
+    wireless: { name: "Wireless Gateway — Zone 1", status: "online", metric: "-58 dBm", sub: "RS485→WiFi/ETH, STA mode" },
+    rtu: { name: "Zone 1 RTU (Modbus TCP server)", status: "online", metric: "12 ms", sub: "avg response time" },
+    busMode: "Bus Error Reset — outputs de-energize on comms loss (confirmed)",
+    points: [
+      { name: "Robot I/O — Ready", kind: "DI", addr: "coil 0", value: true, stale: false },
+      { name: "Robot I/O — Fault", kind: "DI", addr: "coil 1", value: false, stale: false },
+      { name: "Operator Box — Start", kind: "DI", addr: "coil 2", value: false, stale: false },
+      { name: "Operator Box — Stop", kind: "DI", addr: "coil 3", value: false, stale: false },
+      { name: "Operator Box — Lamp (Green)", kind: "DO", addr: "coil 8", value: true, stale: false },
+      { name: "Operator Box — Lamp (Red)", kind: "DO", addr: "coil 9", value: false, stale: false },
+    ],
+    events: [
+      { time: "10:42:11", type: "write", label: "Lamp (Green) → ON", zone: "config" },
+      { time: "10:39:02", type: "config", label: "io_config reloaded (v4)", zone: "config" },
+      { time: "09:58:47", type: "fault", label: "Wireless link dropped 2.1s — outputs held at safe state", zone: "fault" },
+    ],
+  },
+  {
+    id: "zone2", name: "Zone 2 — Welding Jig", status: "degraded",
+    identity: { plant_id: "PLT02", line_id: "L03", zone_id: "Z02", station_id: "ST02" },
+    wireless: { name: "Wireless Gateway — Zone 2", status: "degraded", metric: "-79 dBm", sub: "STA mode, weak signal" },
+    rtu: { name: "Zone 2 RTU (Modbus TCP server)", status: "online", metric: "31 ms", sub: "avg response time" },
+    busMode: "Bus Error Reset — outputs de-energize on comms loss (confirmed)",
+    points: [
+      { name: "Alarm — Beacon", kind: "DO", addr: "coil 0", value: false, stale: false },
+      { name: "Alarm — Horn", kind: "DO", addr: "coil 1", value: false, stale: false },
+      { name: "Welding Jig — Clamp Closed", kind: "DI", addr: "coil 2", value: true, stale: true },
+      { name: "Welding Jig — Weld Active", kind: "DO", addr: "coil 3", value: false, stale: true },
+    ],
+    events: [
+      { time: "10:44:30", type: "fault", label: "Signal degraded (-79 dBm) — 3 retries on last poll", zone: "fault" },
+      { time: "10:20:15", type: "write", label: "Clamp Closed read stale — flagged, no action taken", zone: "fault" },
+    ],
+  },
+  {
+    id: "zone3", name: "Zone 3 — Leak Test", status: "online",
+    identity: { plant_id: "PLT02", line_id: "L03", zone_id: "Z03", station_id: "ST03" },
+    wireless: { name: "Wireless Gateway — Zone 3", status: "online", metric: "-52 dBm", sub: "STA mode, strong signal" },
+    rtu: { name: "Leak Test RTU (Modbus TCP server)", status: "online", metric: "9 ms", sub: "avg response time" },
+    busMode: "Bus Error Reset — outputs de-energize on comms loss (confirmed)",
+    points: [
+      { name: "Leak Test I/O — Test Start", kind: "DI", addr: "coil 0", value: false, stale: false },
+      { name: "Leak Test I/O — Pass", kind: "DI", addr: "coil 1", value: true, stale: false },
+      { name: "Leak Test I/O — Fail", kind: "DI", addr: "coil 2", value: false, stale: false },
+      { name: "Leak Test I/O — Vent Valve", kind: "DO", addr: "coil 8", value: false, stale: false },
+    ],
+    events: [
+      { time: "10:41:05", type: "write", label: "Vent Valve → OFF (cycle complete)", zone: "config" },
+      { time: "10:40:58", type: "write", label: "Pass → ON", zone: "config" },
+    ],
+  },
+];
+
+const tabsEl = document.getElementById("tabs");
+const contentEl = document.getElementById("content");
+let active = "overview";
+
+function statusChipHtml(status){
+  const label = status === "online" ? "Online" : status === "degraded" ? "Degraded" : "Offline";
+  return `<span class="chip ${status}">${label}</span>`;
+}
+
+function renderTabs(){
+  const tabs = [{ id: "overview", label: "Overview" }, ...ZONES.map(z => ({ id: z.id, label: z.name.split(" — ")[0] }))];
+  tabsEl.innerHTML = tabs.map(t => {
+    const zone = ZONES.find(z => z.id === t.id);
+    const chip = zone ? statusChipHtml(zone.status) : "";
+    return `<div class="tab ${active===t.id?'active':''}" data-tab="${t.id}">${t.label} ${chip}</div>`;
+  }).join("");
+  tabsEl.querySelectorAll(".tab").forEach(el=>{
+    el.addEventListener("click", ()=>{ active = el.getAttribute("data-tab"); render(); });
+  });
+}
+
+function renderOverview(){
+  contentEl.innerHTML = `
+    <div class="mockup-flag">⚠ UI mockup — static sample data, not connected to a live terminal.</div>
+    <div class="section-title">Zones</div>
+    <div class="grid">
+      ${ZONES.map(z => `
+        <div class="card zone-card" data-open="${z.id}">
+          <div class="head">
+            <h3>${z.name}</h3>
+            ${statusChipHtml(z.status)}
+          </div>
+          <div class="link-row"><span>Wireless Gateway</span><span class="link-val">${z.wireless.metric}</span></div>
+          <div class="link-row"><span>Zone RTU</span><span class="link-val">${z.rtu.metric}</span></div>
+          <div class="link-row"><span>Points</span><span class="link-val">${z.points.length} configured</span></div>
+          <div class="foot">View zone detail →</div>
+        </div>
+      `).join("")}
+    </div>
+    <div class="section-title">Terminal Identity</div>
+    <div class="card">
+      <table>
+        <tr><th>Zone</th><th>Plant</th><th>Line</th><th>Zone ID</th><th>Station</th></tr>
+        ${ZONES.map(z => `<tr><td>${z.name}</td><td>${z.identity.plant_id}</td><td>${z.identity.line_id}</td><td>${z.identity.zone_id}</td><td>${z.identity.station_id}</td></tr>`).join("")}
+      </table>
+    </div>
+  `;
+  contentEl.querySelectorAll("[data-open]").forEach(el=>{
+    el.addEventListener("click", ()=>{ active = el.getAttribute("data-open"); render(); });
+  });
+}
+
+function renderZone(zone){
+  contentEl.innerHTML = `
+    <div class="mockup-flag">⚠ UI mockup — static sample data, not connected to a live terminal.</div>
+    <div class="zone-header">
+      <div>
+        <h2>${zone.name}</h2>
+        <div class="meta">${zone.identity.plant_id} / ${zone.identity.line_id} / ${zone.identity.zone_id} / ${zone.identity.station_id} — independent event log</div>
+      </div>
+      <div class="badge-row">
+        <span class="badge confirmed">Fail-safe: off on comms loss</span>
+        <span class="badge">${zone.busMode.split(" — ")[0]}</span>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-title">Live IO Points</div>
+        <div class="card">
+          <table>
+            <tr><th>Point</th><th>Kind</th><th>Address</th><th>Value</th></tr>
+            ${zone.points.map(p => `
+              <tr>
+                <td>${p.name}</td>
+                <td>${p.kind}</td>
+                <td>${p.addr}</td>
+                <td>
+                  <span class="val-pill ${p.value ? 'on' : 'off'}">${p.value ? 'ON' : 'OFF'}</span>
+                  ${p.stale ? '<span class="stale-flag">STALE</span>' : ''}
+                </td>
+              </tr>
+            `).join("")}
+          </table>
+        </div>
+
+        <div class="section-title" style="margin-top:20px;">Recent Events (this zone)</div>
+        <div class="card event-feed">
+          ${zone.events.map(e => `
+            <div class="event-row">
+              <span class="event-time">${e.time}</span>
+              <span class="event-type ${e.zone}">${e.type}</span>
+              <span>${e.label}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Link Health</div>
+        <div class="card link-card">
+          <div class="link-item">
+            <div class="li-left">
+              <span class="link-dot ${zone.wireless.status}"></span>
+              <div>
+                <div class="li-title">${zone.wireless.name}</div>
+                <div class="li-sub">${zone.wireless.sub}</div>
+              </div>
+            </div>
+            <div class="li-right">
+              <div class="li-metric">${zone.wireless.metric}</div>
+              <div class="li-metric-sub">signal</div>
+            </div>
+          </div>
+          <div class="link-item">
+            <div class="li-left">
+              <span class="link-dot ${zone.rtu.status}"></span>
+              <div>
+                <div class="li-title">${zone.rtu.name}</div>
+                <div class="li-sub">${zone.rtu.sub}</div>
+              </div>
+            </div>
+            <div class="li-right">
+              <div class="li-metric">${zone.rtu.metric}</div>
+              <div class="li-metric-sub">response</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:20px;">Bus Error Behavior</div>
+        <div class="card">
+          <p style="margin:0; font-size:13px; color:var(--text-2); line-height:1.5;">${zone.busMode}</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function render(){
+  renderTabs();
+  if (active === "overview") renderOverview();
+  else renderZone(ZONES.find(z => z.id === active));
+}
+
+render();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field IO Terminal — System Architecture</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#ffffff; --panel-2:#f8fafc; --border:#cbd5e1; --border-strong:#64748b;
+    --text:#0f172a; --text-2:#475569; --accent:#2563eb; --accent-2:#1d4ed8; --good:#16a34a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(180deg,#0f172a 0%, #1e293b 260px, #f1f5f9 260px);
+    color:var(--text); min-height:100vh;
+  }
+  header{ padding:36px 40px 20px; color:#fff; }
+  header h1{ margin:0 0 6px; font-size:26px; font-weight:700; }
+  header p{ margin:0; color:#cbd5e1; font-size:14.5px; max-width:760px; line-height:1.5; }
+  .wrap{ display:grid; grid-template-columns: 1.55fr 1fr; gap:24px; padding:0 40px 40px; align-items:start; }
+  @media (max-width:980px){ .wrap{ grid-template-columns: 1fr; } }
+
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 24px rgba(15,23,42,.08); }
+  .diagram-card{ padding:18px; }
+  .diagram-card h2{ font-size:14px; margin:2px 8px 10px; color:var(--text-2); font-weight:600; letter-spacing:.02em; text-transform:uppercase; }
+
+  svg{ width:100%; height:auto; display:block; }
+  .box{ fill:var(--panel-2); stroke:var(--border); stroke-width:1.5; cursor:pointer; transition:filter .15s, stroke .15s; }
+  .box:hover{ filter:brightness(0.97); stroke:var(--accent); }
+  .box.active{ fill:#eff6ff; stroke:var(--accent); stroke-width:2.5; }
+  .box-future{ fill:none; stroke:var(--border-strong); stroke-width:1.5; stroke-dasharray:4 4; cursor:pointer; }
+  .box-future.active{ stroke:var(--accent); }
+  .box-outer{ fill:none; stroke:var(--border); stroke-width:1.5; stroke-dasharray:6 4; }
+  .title{ font-size:14.5px; font-weight:700; fill:var(--text); pointer-events:none; }
+  .sub{ font-size:10.8px; fill:var(--text-2); pointer-events:none; }
+  .edge-label{ font-size:14px; font-weight:700; fill:var(--text-2); pointer-events:none; }
+  .label{ font-size:10.5px; fill:var(--text-2); pointer-events:none; }
+  .conn{ stroke:var(--border-strong); stroke-width:1.5; fill:none; }
+  .conn-dash{ stroke:var(--border-strong); stroke-width:1.5; fill:none; stroke-dasharray:4 4; }
+
+  .panel{ position:sticky; top:24px; padding:22px 24px; }
+  .panel .eyebrow{ font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); margin:0 0 8px; }
+  .panel h3{ margin:0 0 10px; font-size:19px; }
+  .panel p{ margin:0 0 10px; font-size:14px; line-height:1.55; color:var(--text-2); }
+  .panel ul{ margin:0 0 4px; padding-left:18px; }
+  .panel li{ font-size:13.5px; line-height:1.6; color:var(--text-2); margin-bottom:4px; }
+  .badge{ display:inline-block; font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px; background:#ecfdf5; color:var(--good); margin-bottom:12px; }
+  .hint{ font-size:12.5px; color:#94a3b8; margin-top:14px; }
+
+  .phase-rail{ margin-top:18px; }
+  .phase-rail h2{ font-size:14px; margin:2px 8px 10px; color:var(--text-2); font-weight:600; letter-spacing:.02em; text-transform:uppercase; }
+  .phase-list{ display:flex; flex-direction:column; gap:6px; padding:0 4px 4px; }
+  .phase-item{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; cursor:pointer;
+    border:1px solid transparent; font-size:13.5px; color:var(--text-2); transition:background .15s;
+  }
+  .phase-item:hover{ background:var(--panel-2); }
+  .phase-item.active{ background:#eff6ff; border-color:#bfdbfe; color:var(--accent-2); font-weight:600; }
+  .phase-num{
+    width:22px; height:22px; border-radius:50%; background:#e2e8f0; color:var(--text-2);
+    font-size:11.5px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .phase-item.active .phase-num{ background:var(--accent); color:#fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Field IO Terminal — System Architecture</h1>
+  <p>Click any box in the diagram, or a phase in the list, to see what it does and how it was built. This view covers the full delivered system: an edge terminal that reads/writes field IO, applies on-device logic, and can be safely configured and updated remotely.</p>
+</header>
+
+<div class="wrap">
+
+  <div>
+    <div class="card diagram-card">
+      <h2>System Diagram</h2>
+      <svg viewBox="0 0 960 700" role="img" aria-labelledby="svgTitle svgDesc">
+        <title id="svgTitle">Field IO Terminal — System Architecture</title>
+        <desc id="svgDesc">Browser and a central fleet/OTA system connect to a Flask config app on each edge terminal. The app shares config files with a poll engine that runs a rule engine and debounce logic, writes to a SQLite event log, and talks over RS485 or Modbus TCP to field IO. A future sync agent (dashed) would forward events to an MQTT broker.</desc>
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+          </marker>
+        </defs>
+
+        <!-- external actors -->
+        <rect class="box" data-key="browser" x="60" y="16" width="220" height="58" rx="10"/>
+        <text class="title" x="170" y="40" text-anchor="middle">Browser / Installer</text>
+        <text class="sub" x="170" y="57" text-anchor="middle">login, commissioning, bench test</text>
+
+        <rect class="box" data-key="ota" x="680" y="16" width="220" height="58" rx="10"/>
+        <text class="title" x="790" y="40" text-anchor="middle">Central Fleet &amp; OTA</text>
+        <text class="sub" x="790" y="57" text-anchor="middle">signed app/schema updates</text>
+
+        <path class="conn" d="M170,74 L170,112" marker-end="url(#arrow)"/>
+        <path class="conn" d="M790,74 L790,112 L 620,112" marker-end="url(#arrow)"/>
+
+        <!-- edge terminal outer -->
+        <rect class="box-outer" x="40" y="112" width="880" height="372" rx="14"/>
+        <text class="edge-label" x="60" y="136">Edge Terminal (one per station — Raspberry Pi)</text>
+
+        <!-- flask app -->
+        <rect class="box" data-key="flask" x="70" y="150" width="270" height="118" rx="10"/>
+        <text class="title" x="205" y="173" text-anchor="middle">Flask Config App :8080</text>
+        <text class="sub" x="90" y="193">• Login, operator / admin tiers</text>
+        <text class="sub" x="90" y="209">• Identity, network, broker, time</text>
+        <text class="sub" x="90" y="225">• IO config, live values, bus scan</text>
+        <text class="sub" x="90" y="241">• Test write, versions, OTA apply</text>
+
+        <!-- config files -->
+        <rect class="box" data-key="config" x="380" y="150" width="230" height="118" rx="10"/>
+        <text class="title" x="495" y="173" text-anchor="middle">Config Files (JSON)</text>
+        <text class="sub" x="400" y="193">• ctrl_id.json (identity)</text>
+        <text class="sub" x="400" y="209">• system_config.json</text>
+        <text class="sub" x="400" y="225">• io_config.json</text>
+        <text class="sub" x="400" y="241">+ version history / LKG</text>
+
+        <!-- event log -->
+        <rect class="box" data-key="eventlog" x="650" y="150" width="240" height="118" rx="10"/>
+        <text class="title" x="770" y="173" text-anchor="middle">SQLite Event Log</text>
+        <text class="sub" x="670" y="193">Append-only, 6-field identity</text>
+        <text class="sub" x="670" y="209">stamp on every row</text>
+        <text class="sub" x="670" y="231">(reads / writes / faults /</text>
+        <text class="sub" x="670" y="245">config changes / OTA)</text>
+
+        <path class="conn" d="M340,209 L380,209" marker-end="url(#arrow)"/>
+        <path class="conn" d="M610,209 L650,209" marker-end="url(#arrow)"/>
+
+        <!-- poll + rule engine -->
+        <rect class="box" data-key="engine" x="70" y="306" width="540" height="136" rx="10"/>
+        <text class="title" x="340" y="330" text-anchor="middle">Poll Engine + Rule Engine</text>
+        <text class="sub" x="90" y="353">• Reads points on a fixed cycle, debounces digital inputs</text>
+        <text class="sub" x="90" y="371">• Evaluates rules[] — whitelisted operators only, no eval</text>
+        <text class="sub" x="90" y="389">• Writes coils, every write logged</text>
+        <text class="sub" x="90" y="407">• Watches config_version — hot-reloads with no restart,</text>
+        <text class="sub" x="90" y="422">  drives outputs to a safe state before any swap</text>
+
+        <path class="conn" d="M495,268 L495,288 L340,288 L340,306" marker-end="url(#arrow)"/>
+        <path class="conn" d="M610,378 L770,378 L770,268" marker-end="url(#arrow)"/>
+
+        <!-- field bus -->
+        <rect class="box" data-key="bus" x="70" y="478" width="540" height="56" rx="10"/>
+        <text class="title" x="340" y="502" text-anchor="middle">Field Bus — RS485 Modbus RTU or Modbus TCP</text>
+        <text class="sub" x="340" y="519" text-anchor="middle">terminal is the master / client</text>
+
+        <path class="conn" d="M340,442 L340,478" marker-end="url(#arrow)"/>
+        <path class="conn" d="M340,534 L340,570" marker-end="url(#arrow)"/>
+
+        <!-- devices -->
+        <rect class="box" data-key="devices" x="70" y="570" width="170" height="56" rx="10"/>
+        <text class="title" x="155" y="596" text-anchor="middle">Remote IO</text>
+        <text class="sub" x="155" y="612" text-anchor="middle">buttons, coils, LEDs</text>
+
+        <rect class="box" data-key="devices" x="270" y="570" width="170" height="56" rx="10"/>
+        <text class="title" x="355" y="596" text-anchor="middle">Machine PLC</text>
+        <text class="sub" x="355" y="612" text-anchor="middle">fault registers</text>
+
+        <rect class="box" data-key="devices" x="470" y="570" width="140" height="56" rx="10"/>
+        <text class="title" x="540" y="596" text-anchor="middle">Sensors</text>
+        <text class="sub" x="540" y="612" text-anchor="middle">counters, RFID</text>
+
+        <path class="conn" d="M340,534 L155,534 L155,570" marker-end="url(#arrow)"/>
+        <path class="conn" d="M340,534 L540,534 L540,570" marker-end="url(#arrow)"/>
+
+        <!-- future -->
+        <rect class="box-future" data-key="future" x="700" y="366" width="190" height="76" rx="10"/>
+        <text class="title" x="795" y="391" text-anchor="middle" fill="#64748b">Sync Agent</text>
+        <text class="sub" x="795" y="408" text-anchor="middle">MQTT, QoS 1, TLS</text>
+        <text class="sub" x="795" y="424" text-anchor="middle">— not built (out of scope)</text>
+
+        <path class="conn-dash" d="M770,268 L770,366" marker-end="url(#arrow)"/>
+
+        <text class="label" x="60" y="660">Solid boxes = built and tested (137 automated tests). Dashed = referenced in scope, not part of this delivery.</text>
+      </svg>
+    </div>
+
+    <div class="card diagram-card phase-rail">
+      <h2>Build Timeline</h2>
+      <div class="phase-list" id="phaseList"></div>
+    </div>
+  </div>
+
+  <div class="card panel" id="panel">
+    <div class="eyebrow">Overview</div>
+    <h3>What you're looking at</h3>
+    <p>A Raspberry Pi edge terminal that reads and writes field IO over Modbus, applies on-device logic, and exposes a browser-based commissioning tool — all validated by 137 automated tests. Click a box or a phase on the left to drill in.</p>
+    <div class="hint">Tip: every solid box below maps to something already built and tested — nothing here is a mockup.</div>
+  </div>
+
+</div>
+
+<script>
+const DATA = {
+  browser: {
+    eyebrow: "Component", title: "Browser / Installer",
+    body: "The commissioning technician's entry point — no SSH, no special software. Every action (login, setting identity, scanning the bus, bench-testing a relay) is a plain HTTP call the same interface a browser-based UI would make.",
+    points: ["Two access tiers: operator (day-to-day) and admin (identity/network/broker)", "Session-based login, passwords hashed, never stored in plain text"],
+    phase: 5
+  },
+  ota: {
+    eyebrow: "Component", title: "Central Fleet & OTA",
+    body: "A central system pushes signed configuration or application updates to units in the field. The terminal only accepts an update if the cryptographic signature verifies — an attacker or a corrupted file can't push a fake update.",
+    points: ["Ed25519 signatures on every update manifest", "Automatic rollback if a post-update health check fails"],
+    phase: 7
+  },
+  flask: {
+    eyebrow: "Component", title: "Flask Config App",
+    body: "The single HTTP interface into the terminal. Everything a technician or a central system does to the unit goes through this layer, so there's one consistent, auditable point of entry — no direct file edits, no SSH.",
+    points: ["Identity, network/broker/time settings", "IO configuration, live values, bus scan", "Guarded bench test-write with auto-revert", "Version history, rollback, OTA apply"],
+    phase: 5
+  },
+  config: {
+    eyebrow: "Component", title: "Config Files (JSON)",
+    body: "Three files define what a unit is (identity), how it talks to the network (system config), and what it does (IO + rules). Every change is schema-validated before it's accepted — a malformed config is rejected with a specific list of problems, and nothing bad ever gets saved.",
+    points: ["Atomic writes — a crash mid-save can't corrupt the file", "Full version history plus a Last-Known-Good backup"],
+    phase: 0
+  },
+  eventlog: {
+    eyebrow: "Component", title: "SQLite Event Log",
+    body: "An append-only audit trail. Every read, write, fault, configuration change, and OTA outcome is logged with a compound identity stamp (plant / line / zone / station / boot / sequence), so any event can be traced to the exact unit and moment it happened.",
+    points: ["boot_id is generated once at first boot and can never be edited via any API"],
+    phase: 6
+  },
+  engine: {
+    eyebrow: "Component", title: "Poll Engine + Rule Engine",
+    body: "The core of the terminal. It polls every configured point on a fixed cycle, debounces noisy digital inputs, and evaluates on-device rules — 'when this input does X, drive that output to Y' — using a fixed, whitelisted set of operators. No arbitrary code ever runs from a config file.",
+    points: ["Supports normally-closed pulse logic for either wiring polarity", "Hot-reloads a new configuration with zero downtime", "Drives all outputs to a safe state before any config swap"],
+    phase: 3
+  },
+  bus: {
+    eyebrow: "Component", title: "Field Bus",
+    body: "The terminal acts as the Modbus master/client, supporting both wired RS485 RTU and networked Modbus TCP devices from the same engine.",
+    points: [],
+    phase: 2
+  },
+  devices: {
+    eyebrow: "Component", title: "Field Devices",
+    body: "The actual hardware being monitored and controlled — remote IO modules, machine PLCs, and sensors — addressed by unit ID and register/coil address as defined in the IO configuration.",
+    points: [],
+    phase: 2
+  },
+  future: {
+    eyebrow: "Not in this delivery", title: "Sync Agent (planned)",
+    body: "A future component that would forward the event log to a central MQTT broker over TLS. It's referenced in the plan for context but was not part of this build — shown dashed to be transparent about scope.",
+    points: [],
+    phase: null
+  }
+};
+
+const PHASES = [
+  { n:0, key:"config", title:"Config contracts", body:"Established the three JSON configuration files and strict schema validation — nothing gets accepted onto a unit unless it's structurally correct." },
+  { n:2, key:"bus", title:"Modbus communication", body:"Built the poll engine: reading and writing points across both RTU and TCP devices on a fixed cycle, with debounce on digital inputs." },
+  { n:3, key:"engine", title:"Rule engine", body:"Added safe, whitelisted on-device logic — including normally-closed pulse handling for either wiring polarity — without allowing arbitrary code execution." },
+  { n:4, key:"engine", title:"Hot reload", body:"A configuration change takes effect immediately with no restart and no monitoring gap. Outputs go to a safe state first, and every prior config is auto-backed-up." },
+  { n:5, key:"flask", title:"Config web app", body:"Delivered the browser-based configuration app with operator and admin access tiers, protected by login." },
+  { n:6, key:"eventlog", title:"Commissioning toolkit", body:"Bus scan, live monitoring, guarded bench test-write with auto-revert, full version history with rollback, and export/import for cloning setups across units." },
+  { n:7, key:"ota", title:"Secure remote updates", body:"Signed configuration/app updates verified cryptographically before being applied, with automatic rollback if a health check fails." },
+  { n:8, key:"flask", title:"Validation & handover", body:"Full test suite (137 automated tests), an installer commissioning guide, and a traceability matrix closing out the build." },
+];
+
+const svg = document.querySelector("svg");
+const panel = document.getElementById("panel");
+const phaseListEl = document.getElementById("phaseList");
+
+function renderPanel(info){
+  panel.innerHTML = `
+    <div class="eyebrow">${info.eyebrow}</div>
+    <h3>${info.title}</h3>
+    <p>${info.body}</p>
+    ${info.points && info.points.length ? `<ul>${info.points.map(p=>`<li>${p}</li>`).join("")}</ul>` : ""}
+  `;
+}
+
+function clearActive(){
+  document.querySelectorAll(".box.active, .box-future.active").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".phase-item.active").forEach(el=>el.classList.remove("active"));
+}
+
+function selectKey(key){
+  clearActive();
+  document.querySelectorAll(`[data-key="${key}"]`).forEach(el=>el.classList.add("active"));
+  if (DATA[key]) renderPanel(DATA[key]);
+}
+
+svg.querySelectorAll("[data-key]").forEach(el=>{
+  el.addEventListener("click", ()=> selectKey(el.getAttribute("data-key")));
+});
+
+PHASES.forEach(p=>{
+  const item = document.createElement("div");
+  item.className = "phase-item";
+  item.innerHTML = `<span class="phase-num">${p.n}</span><span>${p.title}</span>`;
+  item.addEventListener("click", ()=>{
+    clearActive();
+    item.classList.add("active");
+    document.querySelectorAll(`[data-key="${p.key}"]`).forEach(el=>el.classList.add("active"));
+    renderPanel({ eyebrow: "Phase " + p.n, title: p.title, body: p.body, points: [] });
+  });
+  phaseListEl.appendChild(item);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field Terminal Configurator</title>
+<style>
+  :root{
+    --sys-blue:#007AFF; --sys-green:#34C759; --sys-orange:#FF9500; --sys-red:#FF3B30; --sys-yellow:#FFCC00; --sys-teal:#30B0C7;
+    --bg-primary:#F2F2F7; --bg-secondary:#FFFFFF; --bg-tertiary:#E9E9EE;
+    --label-primary:#1C1C1E; --label-secondary:rgba(60,60,67,.6); --label-tertiary:rgba(60,60,67,.3);
+    --separator:rgba(60,60,67,.13);
+    --glass-bg:rgba(255,255,255,.62); --glass-border:rgba(255,255,255,.5); --glass-blur:20px;
+    --radius-sm:10px; --radius-md:14px; --radius-lg:20px; --radius-xl:28px;
+    --shadow-1:0 1px 2px rgba(0,0,0,.04), 0 4px 14px rgba(0,0,0,.06);
+    --shadow-2:0 2px 6px rgba(0,0,0,.06), 0 10px 28px rgba(0,0,0,.09);
+    --blob-from:#FFFFFF; --blob-to:#4E9BFF;
+  }
+  html[data-theme="dark"]{
+    --sys-blue:#0A84FF; --sys-green:#30D158; --sys-orange:#FF9F0A; --sys-red:#FF453A; --sys-yellow:#FFD60A; --sys-teal:#40C8E0;
+    --bg-primary:#000000; --bg-secondary:#1C1C1E; --bg-tertiary:#2C2C2E;
+    --label-primary:#F2F2F7; --label-secondary:rgba(235,235,245,.6); --label-tertiary:rgba(235,235,245,.3);
+    --separator:rgba(84,84,88,.6);
+    --glass-bg:rgba(30,30,32,.55); --glass-border:rgba(255,255,255,.08);
+    --shadow-1:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.35);
+    --shadow-2:0 2px 6px rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.45);
+    --blob-from:#3A3D45; --blob-to:#000000;
+  }
+  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  html,body{ margin:0; }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI",Helvetica,Arial,sans-serif;
+    color:var(--label-primary); background:var(--bg-primary); min-height:100vh; position:relative;
+    transition:background-color .25s, color .25s; font-size:14px;
+  }
+  .mono{ font-family:"SF Mono", ui-monospace, monospace; }
+
+  .blob-field{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .blob{ position:absolute; border-radius:50%; filter:blur(90px); background:radial-gradient(circle at 35% 30%, var(--blob-from), var(--blob-to)); }
+  .blob.b1{ width:460px; height:460px; top:-140px; left:-100px; opacity:.42; }
+  .blob.b2{ width:420px; height:420px; top:140px; right:-120px; opacity:.42; }
+  .blob.b3{ width:380px; height:380px; bottom:-160px; left:30%; opacity:.42; }
+  html[data-theme="dark"] .blob{ opacity:.55; }
+
+  .mock-banner{
+    position:relative; z-index:5; text-align:center; font-size:11.5px; padding:5px; letter-spacing:.3px;
+    background:color-mix(in srgb, var(--sys-orange) 16%, transparent); color:var(--sys-orange); font-weight:600;
+  }
+
+  /* ---- top toolbar ---- */
+  .topbar{
+    position:relative; z-index:10; display:flex; align-items:center; gap:14px; padding:12px 22px;
+    background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border-bottom:1px solid var(--separator);
+  }
+  .topbar .title{ font-size:15px; font-weight:700; letter-spacing:-.01em; }
+  .topbar .site-meta{ font-size:12px; color:var(--label-secondary); font-family:"SF Mono",monospace; }
+  .spacer{ flex:1; }
+  .theme-toggle{
+    display:flex; align-items:center; gap:8px; border:1px solid var(--separator); border-radius:999px;
+    padding:6px 13px; background:var(--bg-secondary); color:var(--label-secondary); font:600 12px inherit; cursor:pointer;
+  }
+  .user-chip{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--label-secondary); }
+  .avatar{ width:28px; height:28px; border-radius:50%; background:var(--sys-blue); color:#fff; display:flex; align-items:center; justify-content:center; font:700 11px inherit; }
+
+  .app-shell{ position:relative; z-index:1; display:flex; min-height:calc(100vh - 76px); }
+
+  /* ---- sidebar ---- */
+  .sidebar{
+    width:230px; flex-shrink:0; padding:18px 12px;
+    background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border-right:1px solid var(--separator);
+  }
+  .sb-title{ font:700 11.5px inherit; color:var(--label-tertiary); text-transform:uppercase; letter-spacing:.04em; padding:10px 10px 6px; }
+  .sb-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 10px; border-radius:8px; font:600 13.5px inherit; color:var(--label-primary); cursor:pointer; margin-bottom:1px; }
+  .sb-item.active{ background:var(--sys-blue); color:#fff; }
+  .sb-item .sb-left{ display:flex; align-items:center; gap:9px; min-width:0; }
+  .sb-item .sb-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sb-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sb-dot.online{ background:var(--sys-green); } .sb-dot.degraded{ background:var(--sys-orange); } .sb-dot.offline{ background:var(--sys-red); }
+
+  .main{ flex:1; padding:24px 30px 70px; max-width:1220px; }
+  .toolbar-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
+  .toolbar-row h1{ font-size:25px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px; }
+  .toolbar-row .tb-meta{ font-size:12.5px; color:var(--label-secondary); font-family:"SF Mono",monospace; }
+
+  .a-badge{ font:600 12px inherit; padding:5px 12px; border-radius:999px; display:inline-flex; align-items:center; gap:6px; flex-shrink:0; }
+  .a-badge.success{ background:color-mix(in srgb, var(--sys-green) 16%, transparent); color:var(--sys-green); }
+  .a-badge.warn{ background:color-mix(in srgb, var(--sys-orange) 16%, transparent); color:var(--sys-orange); }
+  .a-badge.error{ background:color-mix(in srgb, var(--sys-red) 16%, transparent); color:var(--sys-red); }
+  .a-badge.neutral{ background:var(--bg-tertiary); color:var(--label-secondary); }
+  .a-badge .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+  /* ---- segmented tab control ---- */
+  .seg-wrap{ margin-bottom:20px; overflow-x:auto; }
+  .seg{ display:inline-flex; background:var(--bg-tertiary); border-radius:10px; padding:3px; gap:2px; }
+  .seg button{ border:none; background:none; padding:8px 14px; font:600 12.5px inherit; color:var(--label-secondary); border-radius:8px; cursor:pointer; white-space:nowrap; }
+  .seg button.active{ background:var(--bg-secondary); color:var(--label-primary); box-shadow:var(--shadow-1); }
+  .seg button.admin-only{ display:none; }
+  .role-admin .seg button.admin-only{ display:inline-block; }
+
+  .g-section{ margin-bottom:26px; }
+  .g-section h2{ font-size:17px; font-weight:700; letter-spacing:-.01em; margin:0 0 4px; }
+  .g-sub{ color:var(--label-secondary); font-size:13px; margin:0 0 14px; }
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  @media (max-width:900px){ .grid4{ grid-template-columns:repeat(2,1fr); } }
+
+  .solid-card{ background:var(--bg-secondary); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-1); }
+  .glass-card{
+    background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)) saturate(180%); -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:18px; box-shadow:var(--shadow-1);
+  }
+  .clabel{ font:600 11px inherit; color:var(--label-secondary); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
+  .cval{ font-size:24px; font-weight:700; letter-spacing:-.01em; }
+  .csub{ font-size:12px; color:var(--label-secondary); margin-top:6px; }
+
+  .banner{ border-radius:var(--radius-md); padding:12px 15px; font-size:13px; margin-bottom:12px; display:flex; gap:10px; align-items:flex-start; }
+  .banner.info{ background:color-mix(in srgb, var(--sys-blue) 12%, transparent); color:var(--label-primary); }
+  .banner.warn{ background:color-mix(in srgb, var(--sys-orange) 14%, transparent); color:var(--label-primary); }
+  .banner.ok{ background:color-mix(in srgb, var(--sys-green) 14%, transparent); color:var(--label-primary); }
+
+  .a-btn{ font:600 14px inherit; border-radius:980px; padding:9px 18px; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:6px; }
+  .a-btn.filled{ background:var(--sys-blue); color:#fff; }
+  .a-btn.tinted{ background:color-mix(in srgb, var(--sys-blue) 15%, transparent); color:var(--sys-blue); }
+  .a-btn.gray{ background:var(--bg-tertiary); color:var(--label-primary); }
+  .a-btn.plain{ background:none; color:var(--sys-blue); padding:9px 4px; }
+  .a-btn.destructive{ background:color-mix(in srgb, var(--sys-red) 15%, transparent); color:var(--sys-red); }
+  .a-btn.sm{ padding:6px 12px; font-size:12.5px; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+
+  label.f{ display:block; font-size:12px; color:var(--label-secondary); margin:12px 0 5px; font-weight:600; }
+  input,select{ width:100%; background:var(--bg-tertiary); border:1px solid transparent; color:var(--label-primary); border-radius:9px; padding:9px 11px; font-size:13.5px; font-family:inherit; }
+  input:focus,select:focus{ outline:none; border-color:var(--sys-blue); }
+  input:disabled{ opacity:.55; }
+
+  table.a-table{ width:100%; border-collapse:collapse; background:var(--bg-secondary); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-1); }
+  table.a-table th{ text-align:left; font:600 11px inherit; text-transform:uppercase; letter-spacing:.03em; color:var(--label-secondary); padding:11px 15px; border-bottom:1px solid var(--separator); }
+  table.a-table td{ padding:12px 15px; border-bottom:1px solid var(--separator); font-size:13.5px; }
+  table.a-table tr:last-child td{ border-bottom:none; }
+
+  .ios-switch{ width:44px; height:26px; border-radius:14px; background:var(--bg-tertiary); position:relative; cursor:pointer; flex:0 0 auto; transition:background .2s; }
+  .ios-switch.on{ background:var(--sys-green); }
+  .ios-switch i{ position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:left .2s; }
+  .ios-switch.on i{ left:20px; }
+
+  .rule-card{ background:var(--bg-secondary); border-radius:var(--radius-lg); padding:14px 16px; margin-bottom:10px; box-shadow:var(--shadow-1); }
+  .rule-card.disabled{ opacity:.5; }
+  .rule-line{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .r-pill{ background:var(--bg-tertiary); border-radius:7px; padding:6px 10px; font-size:12.5px; }
+  .r-pill.k{ background:none; color:var(--sys-blue); font-weight:700; padding:6px 2px; }
+
+  .grouped-list{ background:var(--bg-secondary); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-1); }
+  .g-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--separator); }
+  .g-row:last-child{ border-bottom:none; }
+  .hist-row{ display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-bottom:1px solid var(--separator); font-size:13px; }
+  .hist-row:last-child{ border-bottom:none; }
+
+  .steps-row{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .step-card{ flex:1; min-width:130px; background:var(--bg-secondary); border-radius:var(--radius-md); padding:12px 14px; box-shadow:var(--shadow-1); }
+  .step-card .sn{ color:var(--sys-blue); font-weight:700; font-size:11.5px; }
+
+  /* ---- login sheet ---- */
+  .overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:60; align-items:center; justify-content:center; }
+  .overlay.open{ display:flex; }
+  .sheet{
+    width:380px; max-width:90vw; padding:28px 26px; border-radius:var(--radius-xl); text-align:center;
+    background:var(--glass-bg); backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%);
+    border:1px solid var(--glass-border); box-shadow:var(--shadow-2);
+  }
+  .sheet h3{ margin:6px 0 2px; font-size:19px; }
+  .sheet .sub{ font-size:12.5px; color:var(--label-secondary); margin:0 0 18px; }
+  .sheet-icon{ width:52px; height:52px; border-radius:16px; background:var(--sys-blue); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; margin:0 auto 10px; }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(120px); z-index:80;
+    background:var(--label-primary); color:var(--bg-primary); padding:11px 20px; border-radius:12px; font-weight:600; font-size:13px;
+    transition:.3s; box-shadow:var(--shadow-2);
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+
+  .view-tab{ display:none; }
+  .view-tab.active{ display:block; }
+</style>
+</head>
+<body>
+
+<div class="blob-field"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div class="mock-banner">◆ NON-FUNCTIONAL MOCKUP — sample data, UX review only · Apple design language</div>
+
+<!-- LOGIN -->
+<div class="overlay open" id="login">
+  <div class="sheet">
+    <div class="sheet-icon">FT</div>
+    <h3>Field Terminal</h3>
+    <p class="sub">Demo Plant · Line L03 · 3 zones</p>
+    <div class="a-badge success" style="margin-bottom:14px;">🔒 Session encrypted (TLS)</div>
+    <label class="f" style="text-align:left">Account (AR-05: real per-user accounts, not a typed name)</label>
+    <select id="loginAccount">
+      <option value="ahmad.operator|operator">ahmad.operator — Operator</option>
+      <option value="site.admin|admin">site.admin — Admin</option>
+    </select>
+    <label class="f" style="text-align:left">Password</label>
+    <input type="password" value="••••••••">
+    <button class="a-btn filled" style="width:100%;margin-top:16px;justify-content:center;" onclick="doLogin()">Sign in</button>
+    <p style="font-size:11px;color:var(--label-tertiary);margin-top:12px;">Role is fixed per account, not selected at login. 5 failed attempts locks this account for 15 minutes. Every change is attributed to the authenticated account — not a self-typed name. Each zone keeps its own independent identity and event log.</p>
+  </div>
+</div>
+
+<div class="topbar">
+  <span class="title">Field Terminal</span>
+  <span class="site-meta">Demo Plant · Line L03 · 3 zones</span>
+  <div class="spacer"></div>
+  <button class="theme-toggle" id="themeToggle" type="button"><span id="themeLabel">Dark mode</span></button>
+  <div class="user-chip"><div class="avatar" id="avatarChip">OP</div><span id="userChip">operator</span></div>
+</div>
+
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sb-title">Fleet</div>
+    <div class="sb-item active" data-nav="overview"><div class="sb-left"><span class="sb-name">Overview</span></div></div>
+
+    <div class="sb-title">Zones</div>
+    <div id="sidebarZones"></div>
+  </div>
+
+  <div class="main" id="main"></div>
+</div>
+
+<!-- ADD IO POINT -->
+<div class="overlay" id="addPointModal">
+  <div class="sheet" style="width:440px;text-align:left;">
+    <h3 style="text-align:left;">Add IO Point</h3>
+    <p class="sub" style="text-align:left;">Output class and owner are enforced at validation (AR-01/AR-03) — not every value here will be accepted.</p>
+    <div id="addPointError"></div>
+    <label class="f">Name</label><input id="apName" placeholder="e.g. Purge Valve">
+    <div class="grid2">
+      <div><label class="f">Type</label>
+        <select id="apType" onchange="renderAddPointFields()">
+          <option value="in">Digital In</option>
+          <option value="out">Digital Out</option>
+        </select>
+      </div>
+      <div><label class="f">Unit id</label><input id="apUnit" value="1"></div>
+    </div>
+    <div id="apOutFields"></div>
+    <div class="btn-row" style="margin-top:16px;justify-content:flex-end;">
+      <button class="a-btn gray" onclick="closeAddPoint()">Cancel</button>
+      <button class="a-btn filled" onclick="submitAddPoint()">Add to draft</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ZONES = [
+  {
+    id:"zone1", name:"Zone 1 — Robot Cell", status:"online",
+    identity:{ plant_id:"PLT02", line_id:"L03", zone_id:"Z01", station_id:"ST01", boot_id:"f47ac10b-58cc-4372-a567-0e02b2c3d479" },
+    link:{ medium:"wired" },
+    wireless:{ status:"online", metric:"Link up" }, rtu:{ status:"online", metric:"12 ms" },
+    version:7, pointsCount:6, rulesCount:2,
+    bus:{ transport:"tcp", host:"192.168.10.11", port:502, timeout:800, retries:"2 × 200 ms", poll:100,
+      serial:{ port:"COM3", baud:19200, parity:"N", stopbits:1 } },
+    rtuSlaves:[
+      { addr:1, timeout:300, retries:"2 × 100 ms", health:"online", lastSeen:"just now" },
+      { addr:2, timeout:300, retries:"2 × 100 ms", health:"online", lastSeen:"just now" },
+      { addr:5, timeout:300, retries:"2 × 100 ms", health:"dead", lastSeen:"4 min ago · re-probing every 30 s" },
+    ],
+    points:[
+      { name:"Robot I/O — Ready", type:"in", unit:1, modbus:"read_coils @0", extra:"—", value:true, stale:false },
+      { name:"Robot I/O — Fault", type:"in", unit:1, modbus:"read_coils @1", extra:"—", value:false, stale:false },
+      { name:"Operator Box — Start", type:"in", unit:1, modbus:"read_coils @2", extra:"debounce 300 ms", value:false, stale:false },
+      { name:"Operator Box — Stop", type:"in", unit:1, modbus:"read_coils @3", extra:"debounce 300 ms", value:false, stale:false },
+      { name:"Operator Box — Lamp (Green)", type:"out", unit:1, modbus:"write_coil @8", extra:"—", value:true, stale:false, owner:"edge", outputClass:"indicator" },
+      { name:"Operator Box — Lamp (Red)", type:"out", unit:1, modbus:"write_coil @9", extra:"—", value:false, stale:false, owner:"edge", outputClass:"indicator" },
+      { name:"Robot Arm — Servo Enable", type:"out", unit:1, modbus:"write_coil @10", extra:"owned by machine PLC", value:true, stale:false, owner:"plc", outputClass:null },
+    ],
+    scan:[ {addr:"192.168.10.11", resp:"Answered (12 ms)", guess:"Robot cell PLC (Modbus TCP)"}, {addr:"192.168.10.12", resp:"Answered (14 ms)", guess:"Operator box IO"}, {addr:"192.168.10.20", resp:"No response", guess:"—"} ],
+    rules:[
+      { enabled:true, ifp:"Robot I/O — Fault", op:"rising edge", then:"pulse Lamp (Red) 500 ms + log robot_fault" },
+      { enabled:true, ifp:"Operator Box — Start", op:"rising edge", then:"set Lamp (Green) = ON", els:"set Lamp (Green) = OFF" },
+    ],
+    versions:[ {v:7,date:"09 Jul 2026 14:02",by:"operator@site",current:true}, {v:6,date:"08 Jul 2026 09:41",by:"operator@site"}, {v:5,date:"05 Jul 2026 16:20",by:"admin"} ],
+    network:{ ip:"192.168.10.9", mask:"255.255.255.0", gw:"192.168.10.1", dns:"192.168.10.1", mqttHost:"mqtt.customer.local", mqttPort:8883, tlsOk:true },
+    ota:{ installed:"App v1.4.2 · schema v2", available:"App v1.5.0 · schema v3" },
+  },
+  {
+    id:"zone2", name:"Zone 2 — Welding Jig", status:"degraded",
+    identity:{ plant_id:"PLT02", line_id:"L03", zone_id:"Z02", station_id:"ST02", boot_id:"a1c9e421-77bb-4e10-9a2f-2c8e6b115d02" },
+    link:{ medium:"wireless" },
+    wireless:{ status:"degraded", metric:"-79 dBm" }, rtu:{ status:"online", metric:"31 ms" },
+    version:4, pointsCount:4, rulesCount:2,
+    bus:{ transport:"tcp", host:"192.168.20.12", port:502, timeout:1500, retries:"3 × 400 ms", poll:150,
+      serial:{ port:"COM4", baud:9600, parity:"N", stopbits:1 } },
+    rtuSlaves:[
+      { addr:1, timeout:500, retries:"3 × 200 ms", health:"online", lastSeen:"just now" },
+    ],
+    points:[
+      { name:"Alarm — Beacon", type:"out", unit:1, modbus:"write_coil @0", extra:"—", value:false, stale:false, owner:"edge", outputClass:"indicator" },
+      { name:"Alarm — Horn", type:"out", unit:1, modbus:"write_coil @1", extra:"—", value:false, stale:false, owner:"edge", outputClass:"indicator" },
+      { name:"Welding Jig — Clamp Closed", type:"in", unit:1, modbus:"read_coils @2", extra:"debounce 300 ms", value:true, stale:true },
+      { name:"Welding Jig — Weld Active", type:"out", unit:1, modbus:"write_coil @3", extra:"—", value:false, stale:true, owner:"edge", outputClass:"non_safety_actuation" },
+    ],
+    scan:[ {addr:"192.168.20.12", resp:"Answered (31 ms, 2 retries)", guess:"Welding jig PLC (Modbus TCP)"}, {addr:"192.168.20.20", resp:"No response", guess:"—"} ],
+    rules:[
+      { enabled:true, ifp:"Welding Jig — Clamp Closed", op:"rising edge", then:"set Weld Active = ON", els:"set Weld Active = OFF" },
+      { enabled:false, ifp:"Wireless signal", op:"< -75 dBm for 5 s", then:"log wireless_degraded" },
+    ],
+    versions:[ {v:4,date:"07 Jul 2026 11:15",by:"admin",current:true}, {v:3,date:"03 Jul 2026 08:30",by:"operator@site"} ],
+    network:{ ip:"192.168.20.9", mask:"255.255.255.0", gw:"192.168.20.1", dns:"192.168.20.1", mqttHost:"mqtt.customer.local", mqttPort:8883, tlsOk:true },
+    ota:{ installed:"App v1.4.2 · schema v2", available:"App v1.5.0 · schema v3" },
+  },
+  {
+    id:"zone3", name:"Zone 3 — Leak Test", status:"online",
+    identity:{ plant_id:"PLT02", line_id:"L03", zone_id:"Z03", station_id:"ST03", boot_id:"5e2b8a90-3f14-4a6c-8e7d-9b0a1c2d3e4f" },
+    link:{ medium:"wired" },
+    wireless:{ status:"online", metric:"Link up" }, rtu:{ status:"online", metric:"9 ms" },
+    version:2, pointsCount:4, rulesCount:2,
+    bus:{ transport:"tcp", host:"192.168.30.11", port:502, timeout:800, retries:"2 × 200 ms", poll:100,
+      serial:{ port:"COM5", baud:19200, parity:"N", stopbits:1 } },
+    rtuSlaves:[
+      { addr:1, timeout:300, retries:"2 × 100 ms", health:"online", lastSeen:"just now" },
+    ],
+    points:[
+      { name:"Leak Test — Test Start", type:"in", unit:1, modbus:"read_coils @0", extra:"—", value:false, stale:false },
+      { name:"Leak Test — Pass", type:"in", unit:1, modbus:"read_coils @1", extra:"—", value:true, stale:false },
+      { name:"Leak Test — Fail", type:"in", unit:1, modbus:"read_coils @2", extra:"—", value:false, stale:false },
+      { name:"Leak Test — Vent Valve", type:"out", unit:1, modbus:"write_coil @8", extra:"—", value:false, stale:false, owner:"edge", outputClass:"non_safety_actuation" },
+    ],
+    scan:[ {addr:"192.168.30.11", resp:"Answered (9 ms)", guess:"Leak test rig (Modbus TCP)"} ],
+    rules:[
+      { enabled:true, ifp:"Leak Test — Test Start", op:"rising edge", then:"pulse Vent Valve 2000 ms" },
+      { enabled:true, ifp:"Leak Test — Fail", op:"rising edge", then:"log leak_test_fail" },
+    ],
+    versions:[ {v:2,date:"06 Jul 2026 17:40",by:"operator@site",current:true}, {v:1,date:"01 Jul 2026 10:00",by:"admin"} ],
+    network:{ ip:"192.168.30.9", mask:"255.255.255.0", gw:"192.168.30.1", dns:"192.168.30.1", mqttHost:"mqtt.customer.local", mqttPort:8883, tlsOk:true },
+    ota:{ installed:"App v1.4.2 · schema v2", available:"App v1.5.0 · schema v3" },
+  },
+];
+
+const TABS = [
+  { id:"overview", label:"Overview" },
+  { id:"bus", label:"Bus Settings" },
+  { id:"points", label:"Points" },
+  { id:"scan", label:"Bus Scan" },
+  { id:"live", label:"Live Values" },
+  { id:"rules", label:"Rules" },
+  { id:"apply", label:"Apply & Rollback" },
+  { id:"identity", label:"Identity 🔒", admin:true },
+  { id:"network", label:"Network 🔒", admin:true },
+  { id:"updates", label:"Updates 🔒", admin:true },
+];
+
+let role = "operator";
+let nav = "overview";      // "overview" or a zone id
+let zoneTab = "overview";  // active tab within a zone
+
+function statusBadge(status){
+  const map = { online:["success","Online"], degraded:["warn","Degraded"], offline:["error","Offline"] };
+  const [cls,label] = map[status] || ["neutral", status];
+  return `<span class="a-badge ${cls}"><span class="dot"></span>${label}</span>`;
+}
+
+function renderSidebar(){
+  const el = document.getElementById("sidebarZones");
+  el.innerHTML = ZONES.map(z => `
+    <div class="sb-item ${nav===z.id?'active':''}" data-nav="${z.id}">
+      <div class="sb-left"><span class="sb-dot ${z.status}"></span><span class="sb-name">${z.name.replace('Zone '+ (ZONES.indexOf(z)+1)+' — ','')}</span></div>
+    </div>
+  `).join("");
+  document.querySelectorAll(".sb-item").forEach(el=>{
+    el.addEventListener("click", ()=>{ nav = el.dataset.nav; zoneTab="overview"; render(); });
+  });
+  document.querySelector('.sb-item[data-nav="overview"]').classList.toggle("active", nav==="overview");
+}
+
+function renderOverviewPage(){
+  const online = ZONES.filter(z=>z.status==="online").length;
+  document.getElementById("main").innerHTML = `
+    <div class="toolbar-row">
+      <div><h1>Overview</h1><div class="tb-meta">Fleet-level status across all zones on this terminal</div></div>
+    </div>
+    <div class="grid4" style="margin-bottom:26px;">
+      <div class="solid-card"><div class="clabel">Zones Online</div><div class="cval">${online} / ${ZONES.length}</div><div class="csub">${ZONES.length-online} degraded</div></div>
+      <div class="solid-card"><div class="clabel">Active Alarms</div><div class="cval">0</div><div class="csub">last 24h</div></div>
+      <div class="solid-card"><div class="clabel">Points Configured</div><div class="cval">${ZONES.reduce((s,z)=>s+z.pointsCount,0)}</div><div class="csub">across ${ZONES.length} zones</div></div>
+      <div class="solid-card"><div class="clabel">Rules Active</div><div class="cval">${ZONES.reduce((s,z)=>s+z.rulesCount,0)}</div><div class="csub">1 disabled</div></div>
+    </div>
+    <div class="g-section">
+      <h2>Zones</h2>
+      <p class="g-sub">Each zone keeps its own identity, config version, and event log — click one to configure it.</p>
+      <div class="grid4">
+        ${ZONES.map(z=>`
+          <div class="solid-card" style="cursor:pointer;" data-openzone="${z.id}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div style="font-weight:700;font-size:14.5px;">${z.name}</div>
+              ${statusBadge(z.status)}
+            </div>
+            <div class="csub" style="display:flex;justify-content:space-between;"><span>${z.link.medium==='wireless'?'Wireless':'Switch link'}</span><b class="mono">${z.wireless.metric}</b></div>
+            <div class="csub" style="display:flex;justify-content:space-between;"><span>RTU response</span><b class="mono">${z.rtu.metric}</b></div>
+            <div class="csub" style="display:flex;justify-content:space-between;"><span>Config</span><b class="mono">v${z.version}</b></div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+  document.querySelectorAll("[data-openzone]").forEach(el=>{
+    el.addEventListener("click", ()=>{ nav = el.dataset.openzone; zoneTab="overview"; render(); });
+  });
+}
+
+function tabContent_overview(z){
+  return `
+    <div class="grid2" style="margin-bottom:16px;">
+      <div class="solid-card"><div class="clabel">Bus Connection</div><div class="cval" style="color:var(--sys-green)">Healthy</div><div class="csub mono">Modbus TCP · ${z.bus.host}:${z.bus.port} · poll ${z.bus.poll} ms</div></div>
+      <div class="solid-card"><div class="clabel">Config</div><div class="cval">Version ${z.version}</div><div class="csub">Applied 09 Jul 2026 · <span style="color:var(--sys-green)">live</span></div></div>
+      <div class="solid-card"><div class="clabel">IO Points</div><div class="cval">${z.pointsCount} mapped</div><div class="csub">${z.points.filter(p=>p.type==='in').length} inputs · ${z.points.filter(p=>p.type==='out').length} outputs</div></div>
+      <div class="solid-card"><div class="clabel">Logic Rules</div><div class="cval">${z.rules.filter(r=>r.enabled).length} active</div><div class="csub">${z.rules.filter(r=>!r.enabled).length} disabled</div></div>
+    </div>
+    <div class="banner ok">✓ <b>Fail-safe confirmed:</b> outputs de-energize automatically if the wireless/Modbus link drops (Bus Error Reset) — this is intentional, not a defect.</div>
+    <div class="banner info">ℹ️ Day-to-day flow: <b>Scan the bus</b> → <b>map &amp; name points</b> → <b>watch live values</b> to confirm → <b>write rules</b> → <b>Apply</b>.</div>
+
+    <div class="solid-card" style="margin-top:16px;">
+      <div style="font-weight:700;margin-bottom:10px;">System health (Architecture Review remediation)</div>
+      <div class="grouped-list">
+        <div class="g-row"><span>Output fail-safe (AR-02)</span><span class="a-badge success">Hardware watchdog active</span></div>
+        <div class="g-row"><span>Control authority (AR-03)</span><span class="a-badge success">1 PLC-owned output, read-only</span></div>
+        <div class="g-row"><span>Central backup (AR-09)</span><span class="a-badge success">Synced 2 min ago</span></div>
+        <div class="g-row"><span>Hardware platform (AR-10)</span><span class="a-badge warn">Consumer Pi — pilot-grade, documented</span></div>
+      </div>
+    </div>
+  `;
+}
+
+const LINK_DEFAULTS = {
+  wired:    { timeout:800,  retries:"2 × 200 ms", poll:100 },
+  wireless: { timeout:1500, retries:"3 × 400 ms", poll:150 },
+};
+
+function setLinkMedium(zoneId, medium){
+  const z = ZONES.find(x=>x.id===zoneId);
+  z.link.medium = medium;
+  const d = LINK_DEFAULTS[medium];
+  z.bus.timeout = d.timeout; z.bus.retries = d.retries; z.bus.poll = d.poll;
+  toast("Link medium set to " + (medium==="wired" ? "Wired switch" : "Wireless gateway") + " — timeout/retry/poll reset to recommended defaults");
+  renderZonePage();
+}
+
+function setTransport(zoneId, transport){
+  const z = ZONES.find(x=>x.id===zoneId);
+  z.bus.transport = transport;
+  renderZonePage();
+}
+
+function tabContent_bus(z){
+  const isWireless = z.link.medium === "wireless";
+  const isRtu = z.bus.transport === "rtu";
+  return `
+    <div class="solid-card">
+      <label class="f">Link medium</label>
+      <div class="btn-row" style="margin-top:0;max-width:420px;">
+        <button class="a-btn ${!isWireless?'filled':'gray'}" style="flex:1;justify-content:center;" onclick="setLinkMedium('${z.id}','wired')">🔌 Wired switch</button>
+        <button class="a-btn ${isWireless?'filled':'gray'}" style="flex:1;justify-content:center;" onclick="setLinkMedium('${z.id}','wireless')">📡 Wireless gateway</button>
+      </div>
+      <p class="g-sub" style="margin-top:8px;">Descriptive only — the engine talks Modbus TCP either way. This just sets sane timeout/retry/poll defaults and what the commissioning UI warns you about.</p>
+
+      <label class="f" style="margin-top:18px;">Transport</label>
+      <div class="btn-row" style="margin-top:0;max-width:420px;">
+        <button class="a-btn ${isRtu?'filled':'gray'}" style="flex:1;justify-content:center;" onclick="setTransport('${z.id}','rtu')">RS485 · Modbus RTU</button>
+        <button class="a-btn ${!isRtu?'filled':'gray'}" style="flex:1;justify-content:center;" onclick="setTransport('${z.id}','tcp')">Ethernet · Modbus TCP</button>
+      </div>
+
+      ${isRtu
+        ? `<div class="banner info" style="margin-top:14px;">RS485 now carries the same per-slave timeout/retry/mark-dead behavior TCP already had (AR-08) — a silent slave no longer stalls the whole poll cycle every time; it's marked dead and re-probed at a slow rate instead.</div>`
+        : isWireless
+        ? `<div class="banner info" style="margin-top:14px;">This zone talks over a wireless RS485↔Ethernet gateway. A dropped read is marked <b>stale</b>, never read as zero — expect occasional dropouts and size timeout/retries accordingly.</div>`
+        : `<div class="banner info" style="margin-top:14px;">This zone talks over the site's wired Ethernet switch. No signal-strength metric exists for a wired link — health is judged purely by Modbus response time and timeout count. <b>Note:</b> Modbus TCP has no authentication — this switch still needs to sit on an isolated OT VLAN.</div>`
+      }
+
+      ${isRtu ? `
+        <div class="grid2">
+          <div><label class="f">Serial port</label><input value="${z.bus.serial.port}"></div>
+          <div><label class="f">Baud rate</label><input value="${z.bus.serial.baud}"></div>
+        </div>
+        <div class="grid2">
+          <div><label class="f">Parity</label><input value="${z.bus.serial.parity}"></div>
+          <div><label class="f">Stop bits</label><input value="${z.bus.serial.stopbits}"></div>
+        </div>
+      ` : `
+        <div class="grid2">
+          <div><label class="f">Device host / IP</label><input value="${z.bus.host}"></div>
+          <div><label class="f">TCP port</label><input value="${z.bus.port}"></div>
+        </div>
+      `}
+      <div class="grid2">
+        <div><label class="f">Default timeout (ms)</label><input value="${z.bus.timeout}"></div>
+        <div><label class="f">Default retries / backoff</label><input value="${z.bus.retries}"></div>
+      </div>
+      <div class="grid2"><div><label class="f">Poll interval (ms)</label><input value="${z.bus.poll}"></div><div></div></div>
+      <div class="btn-row"><button class="a-btn filled" onclick="toast('Bus settings saved to draft')">Save to draft</button><button class="a-btn gray" onclick="toast('Testing connection…')">Test connection</button></div>
+    </div>
+
+    ${isRtu ? `
+      <div class="solid-card" style="margin-top:16px;">
+        <div style="font-weight:700;margin-bottom:4px;">Per-slave health (AR-08)</div>
+        <p class="g-sub">Each RS485 slave now carries its own timeout/retry, mirroring what TCP devices already had. A dead slave is marked and re-probed slowly instead of taxing every poll cycle.</p>
+        <table class="a-table">
+          <tr><th>Slave addr</th><th>Timeout</th><th>Retries</th><th>Health</th><th>Last seen</th></tr>
+          ${z.rtuSlaves.map(s=>`
+            <tr>
+              <td class="mono">${s.addr}</td>
+              <td class="mono">${s.timeout} ms</td>
+              <td class="mono">${s.retries}</td>
+              <td>${s.health==='online' ? '<span class="a-badge success">Online</span>' : '<span class="a-badge error">Dead</span>'}</td>
+              <td style="color:var(--label-secondary)">${s.lastSeen}</td>
+            </tr>
+          `).join("")}
+        </table>
+      </div>
+    ` : ''}
+  `;
+}
+
+function tabContent_points(z){
+  return `
+    <div class="toolbar-row" style="margin-bottom:12px;">
+      <div><h2 style="margin:0;">Devices &amp; IO Points</h2><p class="g-sub" style="margin:2px 0 0;">Rules reference points by name, not address.</p></div>
+      <button class="a-btn filled sm" onclick="openAddPoint('${z.id}')">+ Add Point</button>
+    </div>
+    <table class="a-table">
+      <tr><th>Name</th><th>Type</th><th>Owner</th><th>Output class</th><th>Unit</th><th>Modbus</th><th></th></tr>
+      ${z.points.map(p=>{
+        const isPlc = p.owner === "plc";
+        const ownerBadge = p.type!=='out' ? '<span style="color:var(--label-tertiary)">—</span>'
+          : isPlc ? '<span class="a-badge error">🔒 PLC</span>' : '<span class="a-badge success">Edge</span>';
+        const classBadge = p.type!=='out' ? '<span style="color:var(--label-tertiary)">—</span>'
+          : isPlc ? '<span style="color:var(--label-tertiary)">n/a</span>'
+          : p.outputClass === "indicator" ? '<span class="a-badge neutral">Indicator</span>'
+          : '<span class="a-badge warn">Non-safety actuation</span>';
+        return `
+        <tr ${isPlc ? 'style="opacity:.7;"' : ''}>
+          <td><b>${p.name}</b>${p.extra && p.extra.includes('PLC') ? `<div style="font-size:11.5px;color:var(--label-secondary);">${p.extra}</div>` : ''}</td>
+          <td><span class="a-badge ${p.type==='in'?'neutral':'warn'}">${p.type==='in'?'Digital In':'Digital Out'}</span></td>
+          <td>${ownerBadge}</td>
+          <td>${classBadge}</td>
+          <td class="mono">${p.unit}</td>
+          <td class="mono">${p.modbus}</td>
+          <td>${isPlc ? '<span class="csub">read-only here</span>' : `<button class="a-btn gray sm" onclick="toast('Would edit ${p.name}')">Edit</button>`}</td>
+        </tr>
+      `;}).join("")}
+    </table>
+    <div class="banner info" style="margin-top:14px;">ℹ️ <b>Owner</b> and <b>Output class</b> are enforced at validation (AR-01/AR-03): the edge rule engine can only write <b>Edge</b>-owned outputs classed <b>Indicator</b> or <b>Non-safety actuation</b>. PLC-owned outputs are read-only from this terminal.</div>
+  `;
+}
+
+function tabContent_scan(z){
+  return `
+    <p class="g-sub">Probe the zone's TCP subnet / RTU addresses to discover what's physically connected. Reads only — safe on a live line.</p>
+    <div class="btn-row" style="margin-top:0;margin-bottom:14px;"><button class="a-btn filled" onclick="toast('Scanning…')">▷ Scan this zone</button></div>
+    <table class="a-table">
+      <tr><th>Address</th><th>Response</th><th>Guessed type</th><th></th></tr>
+      ${z.scan.map(s=>`
+        <tr>
+          <td class="mono">${s.addr}</td>
+          <td>${s.resp.includes('No response') ? `<span style="color:var(--label-tertiary)">${s.resp}</span>` : `<span style="color:var(--sys-green)">●</span> ${s.resp}`}</td>
+          <td>${s.guess}</td>
+          <td>${s.guess!=='—' ? `<button class="a-btn gray sm" onclick="toast('Would map points for '+ '${s.addr}')">Map points</button>` : ''}</td>
+        </tr>
+      `).join("")}
+    </table>
+  `;
+}
+
+function tabContent_live(z){
+  return `
+    <p class="g-sub">Read-only real-time view — confirm a point is mapped to the right register before writing rules.</p>
+    <table class="a-table">
+      <tr><th>Point</th><th>Type</th><th>Control</th><th>Value</th><th>Status</th></tr>
+      ${z.points.map(p=>{
+        const typeBadge = p.type==='in' ? '<span class="a-badge neutral">Digital In</span>' : '<span class="a-badge warn">Digital Out</span>';
+        const controlBadge = p.type!=='out' ? '<span style="color:var(--label-tertiary)">—</span>'
+          : p.owner==='plc' ? '<span class="a-badge error">🔒 PLC control</span>'
+          : '<span class="a-badge success">Edge control</span>';
+        return `
+        <tr>
+          <td>${p.name}</td>
+          <td>${typeBadge}</td>
+          <td>${controlBadge}</td>
+          <td><span class="a-badge ${p.value?'success':'neutral'}">${p.value?'ON':'OFF'}</span></td>
+          <td>${p.stale ? '<span class="a-badge warn">Stale</span>' : '<span style="color:var(--sys-green)">●</span> ok'}</td>
+        </tr>
+      `;}).join("")}
+    </table>
+    <div class="banner info" style="margin-top:14px;">🔧 <b>Commissioning mode</b> lets you manually pulse an output to test wiring. Requires confirmation, auto-exits after 5 min.
+      <button class="a-btn tinted sm" style="margin-left:10px" onclick="toast('Would prompt for confirmation')">Enter commissioning mode</button>
+    </div>
+  `;
+}
+
+function tabContent_rules(z){
+  const plcPoints = z.points.filter(p=>p.owner==="plc");
+  return `
+    <div class="toolbar-row" style="margin-bottom:12px;">
+      <div><h2 style="margin:0;">Logic Rules</h2><p class="g-sub" style="margin:2px 0 0;">IF a condition holds, THEN drive an output. No code.</p></div>
+      <button class="a-btn filled sm" onclick="toast('Would open rule builder')">+ Add Rule</button>
+    </div>
+    ${plcPoints.length ? `<div class="banner warn">🔒 <b>${plcPoints.map(p=>p.name).join(', ')}</b> ${plcPoints.length>1?'are':'is'} owned by the machine PLC — not selectable as a rule target here (AR-03). The rule engine may read a PLC-owned point but never write it.</div>` : ''}
+    ${z.rules.map(r=>`
+      <div class="rule-card ${r.enabled?'':'disabled'}">
+        <div class="rule-line">
+          <div class="ios-switch ${r.enabled?'on':''}" onclick="this.classList.toggle('on')"><i></i></div>
+          <span class="r-pill k">IF</span><span class="r-pill">${r.ifp}</span><span class="r-pill">${r.op}</span>
+          <span class="r-pill k">THEN</span><span class="r-pill">${r.then}</span>
+          ${r.els ? `<span class="r-pill k">ELSE</span><span class="r-pill">${r.els}</span>` : ''}
+          <button class="a-btn gray sm" style="margin-left:auto;" onclick="toast('Would edit rule')">Edit</button>
+        </div>
+      </div>
+    `).join("")}
+    <div class="banner ok">✓ Validation: no address conflicts, no dangling references, no two rules driving the same output.</div>
+  `;
+}
+
+function tabContent_apply(z){
+  const edgeOutputs = z.points.filter(p=>p.type==='out' && p.owner==='edge');
+  return `
+    <p class="g-sub">Saving validates the config, then hot-swaps it into the running poll loop for this zone — no restart, no missed cycles.</p>
+    <div class="steps-row">
+      <div class="step-card"><div class="sn">1 · VALIDATE</div>Schema + conflict + owner checks</div>
+      <div class="step-card"><div class="sn">2 · SAVE</div>Atomic write, version bump</div>
+      <div class="step-card"><div class="sn">3 · HOT SWAP</div>Engine reloads live</div>
+      <div class="step-card"><div class="sn">4 · CONFIRM</div>Or auto-revert to last good</div>
+    </div>
+    <div class="banner ok">✓ Draft passes validation — ${z.pointsCount} points, ${z.rulesCount} rules. Ready to apply as <b>version ${z.version+1}</b>.</div>
+
+    <div class="solid-card" style="margin-bottom:16px;">
+      <div style="font-weight:700;margin-bottom:6px;">🔒 Permit-to-edit acknowledgement (AR-07)</div>
+      <p class="g-sub" style="margin-bottom:10px;">This draft touches ${edgeOutputs.length} edge-owned output${edgeOutputs.length===1?'':'s'}. Non-actuating changes (names, scaling) hot-reload instantly; anything touching an output requires acknowledging the resulting states first.</p>
+      <div class="grouped-list" style="margin-bottom:12px;">
+        ${edgeOutputs.map(p=>`
+          <div class="g-row"><span>${p.name}</span><span class="a-badge ${p.value?'success':'neutral'}">${p.value?'ON':'OFF'} after apply</span></div>
+        `).join("")}
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer;">
+        <input type="checkbox" id="ackCheck-${z.id}" style="width:auto;" onchange="document.getElementById('applyBtn-${z.id}').disabled = !this.checked;">
+        I acknowledge the output states shown above and confirm the line is in a safe condition to apply this change.
+      </label>
+    </div>
+
+    <div class="btn-row"><button class="a-btn filled" id="applyBtn-${z.id}" disabled onclick="toast('Config validated & hot-applied as v${z.version+1}')">Validate &amp; Apply</button><button class="a-btn gray" onclick="toast('Draft discarded')">Discard draft</button></div>
+    <div class="solid-card" style="margin-top:16px;">
+      <div style="font-weight:700;margin-bottom:8px;display:flex;justify-content:space-between;">Version history <span style="color:var(--label-secondary);font-weight:500;font-size:12px;">one-click rollback</span></div>
+      <div class="grouped-list">
+        ${z.versions.map(v=>`
+          <div class="hist-row">
+            <span><b>v${v.v}</b> · ${v.date} · ${v.by} ${v.current?'<span class="a-badge success" style="margin-left:8px;">current</span>':''}</span>
+            ${v.current ? '<button class="a-btn gray sm" disabled>Active</button>' : `<button class="a-btn gray sm" onclick="toast('Would roll back to v${v.v}')">Roll back</button>`}
+          </div>
+        `).join("")}
+      </div>
+      <div class="csub" style="margin-top:10px;">☁️ Central backup (AR-09): last synced 2 min ago · non-secret copy stored server-side for drift reporting &amp; RMA restore</div>
+    </div>
+    <div class="btn-row"><button class="a-btn gray sm" onclick="toast('Config exported')">⤓ Export config</button><button class="a-btn gray sm" onclick="toast('Would import from file')">⤒ Import config</button></div>
+  `;
+}
+
+function tabContent_identity(z){
+  return `
+    <div class="banner warn">⚠️ <b>Changing identity forks historical data.</b> Metrics are keyed on plant/line/zone/station — editing these makes it a new station and past OEE/MTBF stop and restart. Only change during (re)commissioning.</div>
+    <div class="solid-card">
+      <div class="grid2">
+        <div><label class="f">Plant ID</label><input value="${z.identity.plant_id}"></div>
+        <div><label class="f">Line ID</label><input value="${z.identity.line_id}"></div>
+      </div>
+      <div class="grid2">
+        <div><label class="f">Zone ID</label><input value="${z.identity.zone_id}"></div>
+        <div><label class="f">Station ID</label><input value="${z.identity.station_id}"></div>
+      </div>
+      <label class="f">boot_id (system-locked — never editable)</label>
+      <input value="${z.identity.boot_id}" disabled>
+      <div class="csub">Independent from every other zone on this terminal — regenerates only on factory reset.</div>
+      <div class="btn-row">
+        <button class="a-btn destructive" onclick="toast('Would require admin confirm + log identity_change')">Save identity (admin)</button>
+        <button class="a-btn gray" onclick="toast('Would prompt: type STATION ID to confirm factory reset')">Factory reset…</button>
+      </div>
+    </div>
+  `;
+}
+
+function tabContent_network(z){
+  return `
+    <div class="grid2">
+      <div class="solid-card">
+        <div style="font-weight:700;margin-bottom:4px;">Device network</div>
+        <div class="grid2"><div><label class="f">IP address</label><input value="${z.network.ip}"></div><div><label class="f">Subnet mask</label><input value="${z.network.mask}"></div></div>
+        <div class="grid2"><div><label class="f">Gateway</label><input value="${z.network.gw}"></div><div><label class="f">DNS</label><input value="${z.network.dns}"></div></div>
+      </div>
+      <div class="solid-card">
+        <div style="font-weight:700;margin-bottom:4px;">MQTT broker</div>
+        <div class="grid2"><div><label class="f">Broker host</label><input value="${z.network.mqttHost}"></div><div><label class="f">Port</label><input value="${z.network.mqttPort}"></div></div>
+        <label class="f">Client key storage</label>
+        <div class="a-badge success">🔒 Secure element (TPM) — not extractable (AR-06)</div>
+        <div class="btn-row"><button class="a-btn filled sm" onclick="toast('Testing TLS connection…')">Test connection</button><span class="csub">last: <span style="color:var(--sys-green)">OK</span></span></div>
+      </div>
+    </div>
+    <div class="solid-card" style="margin-top:14px;">
+      <div style="font-weight:700;margin-bottom:4px;">Time &amp; clock</div>
+      <div class="banner info" style="margin-top:10px;">This zone's OT VLAN has no internet route — NTP defaults to a local source inside the boundary, not <code class="mono">pool.ntp.org</code> (AR-04). Interval/duration math uses a monotonic clock; only display timestamps use the wall clock.</div>
+      <div class="grid2"><div><label class="f">NTP server</label><input value="ntp.local (on-VLAN)"></div><div><label class="f">Timezone</label><input value="Asia/Kuala_Lumpur"></div></div>
+      <div class="csub">Hardware RTC: <span style="color:var(--sys-green)">present</span> · last sync 2 min ago · 0 backward clock steps logged</div>
+    </div>
+  `;
+}
+
+function tabContent_updates(z){
+  return `
+    <p class="g-sub">Updates are pushed over the air, verified, and rolled back automatically if the health check fails.</p>
+    <div class="grid2">
+      <div class="solid-card"><div class="clabel">Installed</div><div class="cval" style="font-size:17px;">${z.ota.installed}</div><div class="csub">healthy</div></div>
+      <div class="solid-card"><div class="clabel">Available</div><div class="cval" style="font-size:17px;color:var(--sys-blue);">${z.ota.available}</div><div class="csub">signed · includes config migration</div>
+        <button class="a-btn filled sm" style="margin-top:10px;" onclick="toast('Staged → verify → backup → migrate → health check')">Install update</button>
+      </div>
+    </div>
+    <div class="steps-row" style="margin-top:14px;">
+      <div class="step-card"><div class="sn">1 · DOWNLOAD</div>Staged, not applied</div>
+      <div class="step-card"><div class="sn">2 · VERIFY</div>Signature check</div>
+      <div class="step-card"><div class="sn">3 · MIGRATE</div>Backup + schema upgrade</div>
+      <div class="step-card"><div class="sn">4 · HEALTH</div>Pass → keep · Fail → rollback</div>
+    </div>
+    <div class="banner ok">✓ Auto-rollback armed for this zone.</div>
+  `;
+}
+
+const RENDERERS = { overview:tabContent_overview, bus:tabContent_bus, points:tabContent_points, scan:tabContent_scan, live:tabContent_live, rules:tabContent_rules, apply:tabContent_apply, identity:tabContent_identity, network:tabContent_network, updates:tabContent_updates };
+
+function renderZonePage(){
+  const z = ZONES.find(x=>x.id===nav);
+  const visibleTabs = TABS.filter(t => !t.admin || role==="admin");
+  if (!visibleTabs.find(t=>t.id===zoneTab)) zoneTab = "overview";
+
+  document.getElementById("main").innerHTML = `
+    <div class="toolbar-row">
+      <div>
+        <h1>${z.name}</h1>
+        <div class="tb-meta">${z.identity.plant_id} / ${z.identity.line_id} / ${z.identity.zone_id} / ${z.identity.station_id} · independent event log</div>
+      </div>
+      ${statusBadge(z.status)}
+    </div>
+    <div class="seg-wrap">
+      <div class="seg">
+        ${visibleTabs.map(t=>`<button class="${zoneTab===t.id?'active':''}" data-tab="${t.id}">${t.label}</button>`).join("")}
+      </div>
+    </div>
+    <div id="tabContent"></div>
+  `;
+  document.getElementById("tabContent").innerHTML = RENDERERS[zoneTab](z);
+  document.querySelectorAll(".seg button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ zoneTab = btn.dataset.tab; renderZonePage(); });
+  });
+}
+
+function render(){
+  renderSidebar();
+  if (nav === "overview") renderOverviewPage();
+  else renderZonePage();
+}
+
+function doLogin(){
+  const [account, accountRole] = document.getElementById("loginAccount").value.split("|");
+  role = accountRole;
+  document.getElementById("userChip").textContent = account + " · " + role;
+  document.getElementById("avatarChip").textContent = account.slice(0,2).toUpperCase();
+  document.body.classList.toggle("role-admin", role === "admin");
+  document.getElementById("login").classList.remove("open");
+  render();
+}
+
+let addPointZoneId = null;
+
+function openAddPoint(zoneId){
+  addPointZoneId = zoneId;
+  document.getElementById("apName").value = "";
+  document.getElementById("apType").value = "in";
+  document.getElementById("addPointError").innerHTML = "";
+  renderAddPointFields();
+  document.getElementById("addPointModal").classList.add("open");
+}
+function closeAddPoint(){
+  document.getElementById("addPointModal").classList.remove("open");
+}
+function renderAddPointFields(){
+  const type = document.getElementById("apType").value;
+  const el = document.getElementById("apOutFields");
+  if (type !== "out"){ el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <label class="f">Owner</label>
+    <select id="apOwner" onchange="renderAddPointFields()">
+      <option value="edge">Edge (this rule engine may write it)</option>
+      <option value="plc">PLC (owned by the machine's own controller)</option>
+    </select>
+    <div id="apClassWrap"></div>
+  `;
+  const owner = document.getElementById("apOwner").value;
+  const classWrap = document.getElementById("apClassWrap");
+  if (owner === "plc"){
+    classWrap.innerHTML = `<p class="g-sub" style="margin-top:8px;">PLC-owned outputs aren't controlled by this rule engine — no output class needed. It will show as read-only in Points and can't be targeted by a rule.</p>`;
+  } else {
+    classWrap.innerHTML = `
+      <label class="f">Output class</label>
+      <select id="apClass">
+        <option value="indicator">Indicator</option>
+        <option value="non_safety_actuation">Non-safety actuation</option>
+        <option value="safety_interlock">Safety interlock</option>
+      </select>
+    `;
+  }
+}
+function submitAddPoint(){
+  const type = document.getElementById("apType").value;
+  const name = document.getElementById("apName").value || "New Point";
+  const errEl = document.getElementById("addPointError");
+  errEl.innerHTML = "";
+
+  if (type === "out"){
+    const owner = document.getElementById("apOwner").value;
+    if (owner === "edge"){
+      const cls = document.getElementById("apClass").value;
+      if (cls === "safety_interlock"){
+        errEl.innerHTML = `<div class="banner warn" style="margin-bottom:4px;">🚫 <b>Rejected (AR-01):</b> "Safety interlock" is not an allowed output class for the edge rule engine. Anything whose failure could injure someone or damage equipment must be hardwired or run on a SIL-rated safety PLC, independent of this device. Choose Indicator or Non-safety actuation, or set Owner to PLC.</div>`;
+        return;
+      }
+    }
+  }
+  closeAddPoint();
+  toast(`"${name}" added to draft`);
+}
+
+let tT;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(tT); tT = setTimeout(()=>t.classList.remove("show"), 2200);
+}
+
+const themeToggle = document.getElementById("themeToggle");
+const themeLabel = document.getElementById("themeLabel");
+function setTheme(mode){
+  document.documentElement.setAttribute("data-theme", mode);
+  themeLabel.textContent = mode === "dark" ? "Light mode" : "Dark mode";
+}
+const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+setTheme(prefersDark ? "dark" : "light");
+themeToggle.addEventListener("click", ()=>{
+  const current = document.documentElement.getAttribute("data-theme");
+  setTheme(current === "dark" ? "light" : "dark");
+});
+
+render();
+</script>
+
+</body>
+</html>

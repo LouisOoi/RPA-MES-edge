@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field Terminal — Material Design Language</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+  :root{
+    /* ---- Material 3 tokens (custom, blue/teal industrial-professional palette) ---- */
+    --md-primary:#2A56C6;
+    --md-on-primary:#FFFFFF;
+    --md-primary-container:#DCE2FF;
+    --md-on-primary-container:#00164B;
+
+    --md-secondary:#146C43;
+    --md-secondary-container:#C6F0D6;
+    --md-on-secondary-container:#00210F;
+
+    --md-tertiary:#7A5900;
+    --md-tertiary-container:#FFDEA6;
+    --md-on-tertiary-container:#3D2E00;
+
+    --md-error:#BA1A1A;
+    --md-error-container:#FFDAD6;
+    --md-on-error-container:#410002;
+
+    --md-surface:#FBFAFE;
+    --md-surface-container-low:#F5F3FA;
+    --md-surface-container:#EFEDF5;
+    --md-surface-container-high:#E9E7EF;
+    --md-on-surface:#1A1B21;
+    --md-on-surface-variant:#46464F;
+    --md-outline:#C6C6D2;
+    --md-outline-variant:#E1E1EC;
+
+    --md-shape-sm:8px; --md-shape-md:12px; --md-shape-lg:16px; --md-shape-xl:28px;
+    --md-elev-1: 0 0 0 1px rgba(255,255,255,.7), 0 1px 2px rgba(42,86,198,.10), 0 2px 5px rgba(42,86,198,.10);
+    --md-elev-2: 0 0 0 1px rgba(255,255,255,.75), 0 1px 3px rgba(42,86,198,.12), 0 4px 9px rgba(42,86,198,.16);
+    --md-elev-3: 0 0 0 1px rgba(255,255,255,.8), 0 2px 4px rgba(42,86,198,.14), 0 6px 13px rgba(42,86,198,.22);
+  }
+
+  /* ---- Material 3 dark scheme — same roles, tones inverted ---- */
+  html[data-theme="dark"]{
+    --md-primary:#B4C6FF;
+    --md-on-primary:#0A2F82;
+    --md-primary-container:#1B3A93;
+    --md-on-primary-container:#DCE2FF;
+
+    --md-secondary:#8CD9A8;
+    --md-secondary-container:#0B5030;
+    --md-on-secondary-container:#C6F0D6;
+
+    --md-tertiary:#F2C063;
+    --md-tertiary-container:#5B4300;
+    --md-on-tertiary-container:#FFDEA6;
+
+    --md-error:#FFB4AB;
+    --md-error-container:#93000A;
+    --md-on-error-container:#FFDAD6;
+
+    --md-surface:#121318;
+    --md-surface-container-low:#1B1C22;
+    --md-surface-container:#202127;
+    --md-surface-container-high:#2B2C33;
+    --md-on-surface:#E3E2E9;
+    --md-on-surface-variant:#C6C6D2;
+    --md-outline:#90909B;
+    --md-outline-variant:#46464F;
+
+    --md-elev-1: 0 0 0 1px rgba(255,255,255,.10), 0 1px 2px rgba(120,150,255,.20), 0 3px 7px rgba(90,120,255,.22);
+    --md-elev-2: 0 0 0 1px rgba(255,255,255,.14), 0 2px 4px rgba(120,150,255,.26), 0 5px 12px rgba(90,120,255,.30);
+    --md-elev-3: 0 0 0 1px rgba(255,255,255,.18), 0 2px 5px rgba(120,150,255,.30), 0 7px 16px rgba(90,120,255,.36);
+  }
+
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:"Roboto",-apple-system,sans-serif; background:var(--md-surface-container-low); color:var(--md-on-surface); transition:background-color .2s, color .2s; }
+  .msym{ font-family:"Material Symbols Outlined"; font-size:20px; line-height:1; user-select:none; }
+
+  /* ---------------- top-level view switch ---------------- */
+  .switcher{ display:flex; align-items:center; gap:0; background:var(--md-surface); border-bottom:1px solid var(--md-outline-variant); padding:0 24px; position:sticky; top:0; z-index:20; transition:background-color .2s, border-color .2s; }
+  .switcher button{
+    border:none; background:none; padding:16px 20px; font:500 14px "Roboto"; color:var(--md-on-surface-variant);
+    cursor:pointer; border-bottom:3px solid transparent; letter-spacing:.02em;
+  }
+  .switcher button.active{ color:var(--md-primary); border-bottom-color:var(--md-primary); }
+  .switcher .sw-spacer{ flex:1; }
+  .theme-toggle{
+    display:flex; align-items:center; gap:8px; border:1px solid var(--md-outline-variant); border-radius:20px;
+    padding:7px 14px 7px 10px; background:var(--md-surface-container); color:var(--md-on-surface-variant);
+    font:500 12.5px "Roboto"; cursor:pointer;
+  }
+  .theme-toggle:hover{ border-color:var(--md-outline); }
+  .theme-toggle .msym{ font-size:18px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ================= STYLE GUIDE VIEW ================= */
+  .guide{ max-width:1100px; margin:0 auto; padding:36px 28px 80px; }
+  .guide h1{ font:400 32px "Roboto"; margin:0 0 4px; }
+  .guide .lede{ color:var(--md-on-surface-variant); font-size:14.5px; margin:0 0 40px; max-width:640px; line-height:1.6; }
+  .g-section{ margin-bottom:44px; }
+  .g-section h2{ font:500 20px "Roboto"; margin:0 0 4px; }
+  .g-section .g-sub{ color:var(--md-on-surface-variant); font-size:13px; margin:0 0 18px; }
+
+  .swatches{ display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
+  .swatch{ border-radius:var(--md-shape-md); padding:14px 12px; min-height:88px; display:flex; flex-direction:column; justify-content:space-between; }
+  .swatch .name{ font:500 11.5px "Roboto Mono"; }
+  .swatch .hex{ font:400 10.5px "Roboto Mono"; opacity:.8; }
+
+  .type-row{ display:flex; align-items:baseline; gap:18px; padding:12px 0; border-bottom:1px solid var(--md-outline-variant); }
+  .type-row:last-child{ border-bottom:none; }
+  .type-row .tlabel{ width:150px; flex-shrink:0; font:400 12px "Roboto Mono"; color:var(--md-on-surface-variant); }
+
+  .btn-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .m-btn{ font:500 14px "Roboto"; border-radius:20px; padding:10px 24px; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:6px; }
+  .m-btn.filled{ background:var(--md-primary); color:var(--md-on-primary); box-shadow:var(--md-elev-1); }
+  .m-btn.tonal{ background:var(--md-primary-container); color:var(--md-on-primary-container); }
+  .m-btn.outlined{ background:none; border:1px solid var(--md-outline); color:var(--md-primary); }
+  .m-btn.text{ background:none; color:var(--md-primary); padding:10px 12px; }
+  .m-btn.fab{ border-radius:16px; padding:16px; box-shadow:var(--md-elev-2); background:var(--md-primary-container); color:var(--md-on-primary-container); }
+
+  .chip-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .m-chip{ font:500 12.5px "Roboto"; padding:6px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--md-outline-variant); }
+  .m-chip.success{ background:var(--md-secondary-container); color:var(--md-on-secondary-container); border-color:transparent; }
+  .m-chip.warn{ background:var(--md-tertiary-container); color:var(--md-on-tertiary-container); border-color:transparent; }
+  .m-chip.error{ background:var(--md-error-container); color:var(--md-on-error-container); border-color:transparent; }
+  .m-chip .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+  .card-demo-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .m-card{ position:relative; background:var(--md-surface); border-radius:var(--md-shape-lg); padding:18px; }
+  .m-card.elev1{ box-shadow:var(--md-elev-1); }
+  .m-card.elev2{ box-shadow:var(--md-elev-2); }
+  .m-card.outlined{ border:1px solid var(--md-outline-variant); box-shadow:none; }
+  .m-card .clabel{ font:500 12px "Roboto Mono"; color:var(--md-on-surface-variant); margin-bottom:8px; }
+  .m-card .cval{ font:400 26px "Roboto"; }
+
+  .shape-row{ display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .shape-demo{ width:72px; height:72px; background:var(--md-primary-container); display:flex; align-items:center; justify-content:center; font:500 10px "Roboto Mono"; color:var(--md-on-primary-container); }
+
+  /* ================= APPLIED PREVIEW VIEW ================= */
+  .app-shell{ display:flex; min-height:calc(100vh - 49px); }
+  .app-bar{ background:var(--md-surface); border-bottom:1px solid var(--md-outline-variant); padding:14px 24px; display:flex; align-items:center; gap:14px; position:sticky; top:49px; z-index:10; }
+  .app-bar .title{ font:500 17px "Roboto"; }
+  .app-bar .site-meta{ font:400 12.5px "Roboto Mono"; color:var(--md-on-surface-variant); }
+  .app-bar .spacer{ flex:1; }
+  .app-bar .avatar{ width:34px; height:34px; border-radius:50%; background:var(--md-primary); color:var(--md-on-primary); display:flex; align-items:center; justify-content:center; font:500 13px "Roboto"; }
+
+  .rail{ width:88px; background:var(--md-surface); border-right:1px solid var(--md-outline-variant); padding:20px 0; display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; }
+  .rail-item{ width:100%; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 0; cursor:pointer; color:var(--md-on-surface-variant); }
+  .rail-item .icon-pill{ width:56px; height:32px; border-radius:16px; display:flex; align-items:center; justify-content:center; }
+  .rail-item.active{ color:var(--md-on-primary-container); }
+  .rail-item.active .icon-pill{ background:var(--md-primary-container); }
+  .rail-item .rlabel{ font:500 11px "Roboto"; }
+
+  .main{ flex:1; padding:24px 28px 60px; max-width:1180px; }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:26px; }
+  .kpi-card{ position:relative; background:var(--md-surface); border-radius:var(--md-shape-lg); padding:18px; box-shadow:var(--md-elev-1); }
+  .kpi-card .klabel{ font:500 11.5px "Roboto"; color:var(--md-on-surface-variant); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+  .kpi-card .kval{ font:400 30px "Roboto"; }
+  .kpi-card .ktrend{ font:500 12px "Roboto"; margin-top:6px; display:flex; align-items:center; gap:4px; }
+  .ktrend.up{ color:var(--md-secondary); }
+  .ktrend.flat{ color:var(--md-on-surface-variant); }
+
+  .section-title{ font:500 15px "Roboto"; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+
+  .zone-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:30px; }
+  .zone-card{ position:relative; background:var(--md-surface); border-radius:var(--md-shape-lg); padding:18px; box-shadow:var(--md-elev-1); cursor:pointer; transition:box-shadow .15s; }
+  .zone-card:hover{ box-shadow:var(--md-elev-2); }
+  .zone-card .zhead{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .zone-card h3{ font:500 15.5px "Roboto"; margin:0; }
+  .zone-card .zrow{ display:flex; justify-content:space-between; font:400 12.5px "Roboto"; color:var(--md-on-surface-variant); padding:5px 0; }
+  .zone-card .zrow b{ color:var(--md-on-surface); font-weight:500; font-family:"Roboto Mono"; }
+
+  .m-tabs{ display:flex; gap:4px; border-bottom:1px solid var(--md-outline-variant); margin-bottom:20px; }
+  .m-tab{ font:500 13.5px "Roboto"; padding:12px 18px; color:var(--md-on-surface-variant); cursor:pointer; border-bottom:2px solid transparent; }
+  .m-tab.active{ color:var(--md-primary); border-bottom-color:var(--md-primary); }
+
+  table.m-table{ width:100%; border-collapse:collapse; background:var(--md-surface); border-radius:var(--md-shape-lg); overflow:hidden; box-shadow:var(--md-elev-1); }
+  table.m-table th{ text-align:left; font:500 11px "Roboto"; text-transform:uppercase; letter-spacing:.04em; color:var(--md-on-surface-variant); padding:12px 16px; border-bottom:1px solid var(--md-outline-variant); }
+  table.m-table td{ padding:13px 16px; border-bottom:1px solid var(--md-outline-variant); font:400 13.5px "Roboto"; }
+  table.m-table tr:last-child td{ border-bottom:none; }
+  .mono-cell{ font-family:"Roboto Mono"; font-size:12.5px; color:var(--md-on-surface-variant); }
+</style>
+</head>
+<body>
+
+<div class="switcher">
+  <button class="active" data-view="guide">Design Language</button>
+  <button data-view="preview">Applied Preview</button>
+  <div class="sw-spacer"></div>
+  <button class="theme-toggle" id="themeToggle" type="button">
+    <span class="msym" id="themeIcon">dark_mode</span>
+    <span id="themeLabel">Dark mode</span>
+  </button>
+</div>
+
+<!-- ============ DESIGN LANGUAGE / STYLE GUIDE ============ -->
+<div class="view active" id="guide">
+  <div class="guide">
+    <h1>Field Terminal — Material Design</h1>
+    <p class="lede">Material 3, tuned for a screen used by engineers/system integrators for deployment and glanced at by leadership for status. Rounded surfaces, elevation instead of harsh borders, restrained color reserved for status and action — not decoration.</p>
+
+    <div class="g-section">
+      <h2>Color</h2>
+      <p class="g-sub">Primary = action &amp; brand. Secondary = healthy/success. Tertiary = caution. Error = fault. Everything else stays neutral surface tone.</p>
+      <div class="swatches">
+        <div class="swatch" style="background:var(--md-primary);color:var(--md-on-primary)"><span class="name">Primary</span><span class="hex">#2A56C6</span></div>
+        <div class="swatch" style="background:var(--md-primary-container);color:var(--md-on-primary-container)"><span class="name">Primary container</span><span class="hex">#DCE2FF</span></div>
+        <div class="swatch" style="background:var(--md-secondary);color:#fff"><span class="name">Secondary (OK)</span><span class="hex">#146C43</span></div>
+        <div class="swatch" style="background:var(--md-secondary-container);color:var(--md-on-secondary-container)"><span class="name">Secondary container</span><span class="hex">#C6F0D6</span></div>
+        <div class="swatch" style="background:var(--md-tertiary-container);color:var(--md-on-tertiary-container)"><span class="name">Tertiary (warn)</span><span class="hex">#FFDEA6</span></div>
+        <div class="swatch" style="background:var(--md-error-container);color:var(--md-on-error-container)"><span class="name">Error container</span><span class="hex">#FFDAD6</span></div>
+        <div class="swatch" style="background:var(--md-surface);color:var(--md-on-surface);border:1px solid var(--md-outline-variant)"><span class="name">Surface</span><span class="hex">#FBFAFE</span></div>
+        <div class="swatch" style="background:var(--md-surface-container);color:var(--md-on-surface)"><span class="name">Surface container</span><span class="hex">#EFEDF5</span></div>
+        <div class="swatch" style="background:var(--md-surface-container-high);color:var(--md-on-surface)"><span class="name">Surface high</span><span class="hex">#E9E7EF</span></div>
+        <div class="swatch" style="background:var(--md-on-surface);color:#fff"><span class="name">On-surface</span><span class="hex">#1A1B21</span></div>
+        <div class="swatch" style="background:var(--md-on-surface-variant);color:#fff"><span class="name">On-surface variant</span><span class="hex">#46464F</span></div>
+        <div class="swatch" style="background:var(--md-outline);color:#fff"><span class="name">Outline</span><span class="hex">#C6C6D2</span></div>
+      </div>
+    </div>
+
+    <div class="g-section">
+      <h2>Type scale</h2>
+      <p class="g-sub">Roboto throughout the UI, Roboto Mono for identity/address/technical values — signals "this is a precise instrument" without shouting.</p>
+      <div class="type-row"><span class="tlabel">Display / 32</span><span style="font-size:32px;">Field Terminal</span></div>
+      <div class="type-row"><span class="tlabel">Headline / 24</span><span style="font-size:24px;">Zone 1 — Robot Cell</span></div>
+      <div class="type-row"><span class="tlabel">Title / 16 · 500</span><span style="font-size:16px;font-weight:500;">Live IO Points</span></div>
+      <div class="type-row"><span class="tlabel">Body / 14</span><span style="font-size:14px;">Every write is validated, logged, and reversible.</span></div>
+      <div class="type-row"><span class="tlabel">Label / 12 · 500</span><span style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;">Bus Connection</span></div>
+      <div class="type-row"><span class="tlabel">Mono / 13</span><span style="font-family:'Roboto Mono';font-size:13px;">PLT02 / L03 / Z01 / ST01 · coil 3</span></div>
+    </div>
+
+    <div class="g-section">
+      <h2>Buttons &amp; actions</h2>
+      <div class="btn-row">
+        <button class="m-btn filled"><span class="msym">check_circle</span>Validate &amp; Apply</button>
+        <button class="m-btn tonal"><span class="msym">bolt</span>Test Write</button>
+        <button class="m-btn outlined"><span class="msym">restart_alt</span>Roll back</button>
+        <button class="m-btn text">Discard draft</button>
+        <button class="m-btn fab"><span class="msym">add</span></button>
+      </div>
+    </div>
+
+    <div class="g-section">
+      <h2>Status chips</h2>
+      <div class="chip-row">
+        <span class="m-chip success"><span class="dot"></span>Online</span>
+        <span class="m-chip warn"><span class="dot"></span>Degraded</span>
+        <span class="m-chip error"><span class="dot"></span>Offline</span>
+        <span class="m-chip">Stale</span>
+        <span class="m-chip">Admin only</span>
+      </div>
+    </div>
+
+    <div class="g-section">
+      <h2>Cards &amp; elevation</h2>
+      <p class="g-sub">Elevation (shadow) shows what's interactive or "floating"; outlined cards show grouped, static data.</p>
+      <div class="card-demo-row">
+        <div class="m-card elev1"><div class="clabel">ELEVATION 1 — KPI</div><div class="cval">99.4%</div></div>
+        <div class="m-card elev2"><div class="clabel">ELEVATION 2 — clickable</div><div class="cval">3 Zones</div></div>
+        <div class="m-card outlined"><div class="clabel">OUTLINED — static</div><div class="cval">v7</div></div>
+      </div>
+    </div>
+
+    <div class="g-section">
+      <h2>Shape</h2>
+      <div class="shape-row">
+        <div class="shape-demo" style="border-radius:var(--md-shape-sm);">8px · chips</div>
+        <div class="shape-demo" style="border-radius:var(--md-shape-md);">12px · buttons</div>
+        <div class="shape-demo" style="border-radius:var(--md-shape-lg);">16px · cards</div>
+        <div class="shape-demo" style="border-radius:var(--md-shape-xl);">28px · dialogs</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APPLIED PREVIEW ============ -->
+<div class="view" id="preview">
+  <div class="app-bar">
+    <span class="msym" style="color:var(--md-primary)">factory</span>
+    <span class="title">Field Terminal</span>
+    <span class="site-meta">Demo Plant · Line L03 · 3 zones</span>
+    <div class="spacer"></div>
+    <span class="msym" style="color:var(--md-on-surface-variant)">notifications</span>
+    <div class="avatar">A1</div>
+  </div>
+
+  <div class="app-shell">
+    <div class="rail">
+      <div class="rail-item active"><div class="icon-pill"><span class="msym">dashboard</span></div><span class="rlabel">Overview</span></div>
+      <div class="rail-item"><div class="icon-pill"><span class="msym">lan</span></div><span class="rlabel">Zones</span></div>
+      <div class="rail-item"><div class="icon-pill"><span class="msym">rule</span></div><span class="rlabel">Rules</span></div>
+      <div class="rail-item"><div class="icon-pill"><span class="msym">history</span></div><span class="rlabel">Versions</span></div>
+      <div class="rail-item"><div class="icon-pill"><span class="msym">admin_panel_settings</span></div><span class="rlabel">Admin</span></div>
+    </div>
+
+    <div class="main">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="klabel">Uptime (30d)</div><div class="kval">99.4%</div><div class="ktrend up"><span class="msym" style="font-size:15px;">trending_up</span>+0.2%</div></div>
+        <div class="kpi-card"><div class="klabel">Zones Online</div><div class="kval">2 / 3</div><div class="ktrend flat">1 degraded</div></div>
+        <div class="kpi-card"><div class="klabel">Active Alarms</div><div class="kval">0</div><div class="ktrend flat">last 24h</div></div>
+        <div class="kpi-card"><div class="klabel">Config Version</div><div class="kval">v7</div><div class="ktrend flat">applied Jul 9</div></div>
+      </div>
+
+      <div class="section-title"><span class="msym">lan</span>Zones</div>
+      <div class="zone-grid">
+        <div class="zone-card">
+          <div class="zhead"><h3>Zone 1 — Robot Cell</h3><span class="m-chip success"><span class="dot"></span>Online</span></div>
+          <div class="zrow"><span>Wireless</span><b>-58 dBm</b></div>
+          <div class="zrow"><span>RTU response</span><b>12 ms</b></div>
+          <div class="zrow"><span>Identity</span><b>ST01</b></div>
+        </div>
+        <div class="zone-card">
+          <div class="zhead"><h3>Zone 2 — Welding Jig</h3><span class="m-chip warn"><span class="dot"></span>Degraded</span></div>
+          <div class="zrow"><span>Wireless</span><b>-79 dBm</b></div>
+          <div class="zrow"><span>RTU response</span><b>31 ms</b></div>
+          <div class="zrow"><span>Identity</span><b>ST02</b></div>
+        </div>
+        <div class="zone-card">
+          <div class="zhead"><h3>Zone 3 — Leak Test</h3><span class="m-chip success"><span class="dot"></span>Online</span></div>
+          <div class="zrow"><span>Wireless</span><b>-52 dBm</b></div>
+          <div class="zrow"><span>RTU response</span><b>9 ms</b></div>
+          <div class="zrow"><span>Identity</span><b>ST03</b></div>
+        </div>
+      </div>
+
+      <div class="section-title"><span class="msym">settings_input_component</span>Zone 2 — Devices &amp; IO Points</div>
+      <div class="m-tabs">
+        <div class="m-tab active">Bus Settings</div>
+        <div class="m-tab">Points</div>
+        <div class="m-tab">Rules</div>
+        <div class="m-tab">Live Values</div>
+        <div class="m-tab">Apply &amp; Rollback</div>
+      </div>
+      <table class="m-table">
+        <tr><th>Name</th><th>Type</th><th>Unit ID</th><th>Modbus</th><th>Value</th></tr>
+        <tr><td>Alarm — Beacon</td><td>Digital Out</td><td class="mono-cell">1</td><td class="mono-cell">write_coil @0</td><td><span class="m-chip">OFF</span></td></tr>
+        <tr><td>Welding Jig — Clamp Closed</td><td>Digital In</td><td class="mono-cell">1</td><td class="mono-cell">read_coils @2</td><td><span class="m-chip warn">STALE</span></td></tr>
+        <tr><td>Welding Jig — Weld Active</td><td>Digital Out</td><td class="mono-cell">1</td><td class="mono-cell">write_coil @3</td><td><span class="m-chip">OFF</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll(".switcher button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".switcher button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+      document.getElementById(btn.dataset.view).classList.add("active");
+    });
+  });
+  document.querySelectorAll(".m-tab").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      document.querySelectorAll(".m-tab").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+    });
+  });
+
+  // ---- dark mode toggle ----
+  const themeToggle = document.getElementById("themeToggle");
+  const themeIcon = document.getElementById("themeIcon");
+  const themeLabel = document.getElementById("themeLabel");
+
+  function setTheme(mode){
+    document.documentElement.setAttribute("data-theme", mode);
+    themeIcon.textContent = mode === "dark" ? "light_mode" : "dark_mode";
+    themeLabel.textContent = mode === "dark" ? "Light mode" : "Dark mode";
+  }
+
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  setTheme(prefersDark ? "dark" : "light");
+
+  themeToggle.addEventListener("click", ()=>{
+    const current = document.documentElement.getAttribute("data-theme");
+    setTheme(current === "dark" ? "light" : "dark");
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "bus": {
+    "port": "/dev/ttyS0",
+    "baudrate": 19200,
+    "parity": "N",
+    "stopbits": 1,
+    "bytesize": 8,
+    "poll_interval_ms": 100
+  },
+  "devices": [
+    { "unit_id": 1, "name": "Remote IO Module" },
+    { "unit_id": 2, "name": "Machine PLC" }
+  ],
+  "points": [
+    { "id": "btn_maint",  "unit_id": 1, "kind": "digital_in",  "address": 0,   "debounce_reads": 3 },
+    { "id": "led_maint",  "unit_id": 1, "kind": "digital_out", "address": 1 },
+    { "id": "fault_code", "unit_id": 2, "kind": "register",    "address": 100 }
+  ]
+}

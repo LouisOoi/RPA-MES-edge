@@ -1,0 +1,5 @@
+jsonschema>=4.21
+pytest>=8.0
+pymodbus>=3.13
+flask>=3.0
+cryptography>=42.0

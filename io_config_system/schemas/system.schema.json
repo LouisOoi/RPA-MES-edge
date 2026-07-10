@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yisb.local/schemas/system_config.schema.json",
+  "title": "System Config (/etc/system_config.json)",
+  "description": "Admin-tier only. Network, MQTT broker, and time settings applied by a privileged helper (Phase 5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["network", "mqtt", "time"],
+  "properties": {
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["static", "dhcp"] },
+        "ip":      { "type": "string", "format": "ipv4" },
+        "mask":    { "type": "string", "format": "ipv4" },
+        "gateway": { "type": "string", "format": "ipv4" },
+        "dns": {
+          "type": "array",
+          "items": { "type": "string", "format": "ipv4" },
+          "maxItems": 4
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "static" } } },
+          "then": { "required": ["ip", "mask", "gateway"] }
+        }
+      ]
+    },
+    "mqtt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["broker_host", "port", "tls"],
+      "properties": {
+        "broker_host": { "type": "string", "minLength": 1 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "tls": { "type": "boolean" },
+        "ca_cert":     { "type": "string" },
+        "client_cert": { "type": "string" },
+        "client_key":  { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "tls": { "const": true } } },
+          "then": { "required": ["ca_cert", "client_cert", "client_key"] }
+        }
+      ]
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ntp", "timezone", "rtc_present"],
+      "properties": {
+        "ntp": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "timezone": { "type": "string", "minLength": 1 },
+        "rtc_present": { "type": "boolean" }
+      }
+    }
+  }
+}
