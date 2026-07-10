@@ -30,15 +30,21 @@
   .login-card .sub{ color:var(--label-secondary); font-size:13px; margin:0 0 24px; }
   .field{ margin-bottom:14px; }
   .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--label-secondary); margin-bottom:6px; }
-  .field input{
+  .field input, .field select{
     width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--separator);
-    background:var(--bg-primary); font-size:14px; color:var(--label-primary);
+    background:var(--bg-primary); font-size:14px; color:var(--label-primary); font-family:inherit;
   }
-  .field input:focus{ outline:2px solid var(--sys-blue); outline-offset:1px; }
+  .field input:focus, .field select:focus{ outline:2px solid var(--sys-blue); outline-offset:1px; }
+  .field.inline{ display:flex; align-items:center; gap:10px; }
+  .field.inline label{ margin:0; }
   .err{ color:var(--sys-red); font-size:12.5px; margin:8px 0 0; min-height:16px; }
+  .ok-msg{ color:var(--sys-green); font-size:12.5px; margin:8px 0 0; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; }
+  .form-grid .field.full{ grid-column:1 / -1; }
 
   .a-btn{ font:600 14px inherit; border-radius:980px; padding:10px 18px; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:6px; }
-  .a-btn.filled{ background:var(--sys-blue); color:#fff; width:100%; justify-content:center; }
+  .a-btn.filled{ background:var(--sys-blue); color:#fff; }
+  .a-btn.filled.block{ width:100%; justify-content:center; }
   .a-btn.filled:disabled{ opacity:.5; cursor:default; }
   .a-btn.tinted{ background:color-mix(in srgb, var(--sys-blue) 14%, transparent); color:var(--sys-blue); }
   .a-btn.gray{ background:var(--bg-tertiary); color:var(--label-primary); }
@@ -60,9 +66,7 @@
   .layout{ display:flex; }
   .sidebar{ width:230px; flex:0 0 auto; padding:16px 10px; border-right:1px solid var(--separator); min-height:calc(100vh - 52px); }
   .sidebar h2{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--label-tertiary); margin:6px 10px 8px; }
-  .zone-item{
-    display:flex; align-items:center; gap:8px; padding:10px 10px; border-radius:var(--radius-sm); cursor:pointer; margin-bottom:2px;
-  }
+  .zone-item{ display:flex; align-items:center; gap:8px; padding:10px 10px; border-radius:var(--radius-sm); cursor:pointer; margin-bottom:2px; }
   .zone-item:hover{ background:var(--bg-tertiary); }
   .zone-item.active{ background:color-mix(in srgb, var(--sys-blue) 12%, transparent); }
   .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
@@ -71,8 +75,8 @@
   .zone-item .zid{ font-weight:600; font-size:13.5px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .crash-badge{ font-size:10.5px; font-weight:700; color:var(--sys-red); background:color-mix(in srgb, var(--sys-red) 14%, transparent); border-radius:999px; padding:1px 6px; }
 
-  .main{ flex:1; padding:22px 26px 60px; max-width:900px; }
-  .zone-header{ display:flex; align-items:baseline; gap:12px; margin-bottom:18px; }
+  .main{ flex:1; padding:22px 26px 60px; max-width:960px; }
+  .zone-header{ display:flex; align-items:baseline; gap:12px; margin-bottom:14px; }
   .zone-header h1{ font-size:24px; margin:0; letter-spacing:-.02em; }
   .a-badge{ font:600 11.5px inherit; padding:4px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; }
   .a-badge.success{ background:color-mix(in srgb, var(--sys-green) 16%, transparent); color:var(--sys-green); }
@@ -80,9 +84,14 @@
   .a-badge.warn{ background:color-mix(in srgb, var(--sys-orange) 16%, transparent); color:var(--sys-orange); }
   .a-badge.neutral{ background:var(--bg-tertiary); color:var(--label-secondary); }
 
+  .tabs{ display:flex; gap:2px; background:var(--bg-tertiary); border-radius:11px; padding:3px; margin-bottom:18px; width:fit-content; flex-wrap:wrap; }
+  .tabs button{ border:none; background:none; padding:7px 14px; font:600 12.5px inherit; color:var(--label-secondary); border-radius:9px; cursor:pointer; }
+  .tabs button.active{ background:var(--bg-secondary); color:var(--label-primary); box-shadow:var(--shadow-1); }
+
   .card{ background:var(--bg-secondary); border-radius:var(--radius-lg); box-shadow:var(--shadow-1); padding:18px 20px; margin-bottom:18px; }
-  .card h3{ font-size:15px; margin:0 0 12px; letter-spacing:-.005em; }
-  .card h3 .hint{ font-size:12px; font-weight:400; color:var(--label-tertiary); margin-left:8px; }
+  .card h3{ font-size:15px; margin:0 0 12px; letter-spacing:-.005em; display:flex; align-items:center; gap:8px; }
+  .card h3 .hint{ font-size:12px; font-weight:400; color:var(--label-tertiary); margin-left:0; }
+  .card .actions-row{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
 
   table{ width:100%; border-collapse:collapse; font-size:13px; }
   th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--label-tertiary); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--separator); }
@@ -97,14 +106,13 @@
   .ios-switch.on{ background:var(--sys-green); }
   .ios-switch i{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:left .15s; }
   .ios-switch.on i{ left:18px; }
-  .ios-switch.disabled{ opacity:.4; cursor:default; }
 
   .empty{ color:var(--label-tertiary); font-size:13px; padding:8px; }
+  .locked-note{ color:var(--label-tertiary); font-size:12.5px; background:var(--bg-tertiary); border-radius:var(--radius-sm); padding:10px 12px; }
 
-  /* ---- modal ---- */
   .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:50; }
   .modal-backdrop.show{ display:flex; }
-  .modal{ width:440px; max-height:80vh; overflow:auto; background:var(--bg-secondary); border-radius:var(--radius-lg); box-shadow:var(--shadow-2); padding:22px; }
+  .modal{ width:460px; max-height:82vh; overflow:auto; background:var(--bg-secondary); border-radius:var(--radius-lg); box-shadow:var(--shadow-2); padding:22px; }
   .modal h3{ margin:0 0 6px; font-size:16px; }
   .modal p{ color:var(--label-secondary); font-size:13px; line-height:1.5; margin:0 0 14px; }
   .modal .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
@@ -112,12 +120,12 @@
   .toast{
     position:fixed; bottom:20px; right:20px; background:var(--label-primary); color:var(--bg-primary);
     padding:10px 16px; border-radius:var(--radius-sm); font-size:13px; box-shadow:var(--shadow-2); z-index:60;
-    opacity:0; transform:translateY(8px); transition:opacity .2s, transform .2s; pointer-events:none;
+    opacity:0; transform:translateY(8px); transition:opacity .2s, transform .2s; pointer-events:none; max-width:360px;
   }
   .toast.show{ opacity:1; transform:translateY(0); }
 
-  .test-write-row{ display:flex; align-items:center; gap:10px; }
-  .test-write-row select{ padding:6px 8px; border-radius:8px; border:1px solid var(--separator); font-size:13px; }
+  .test-write-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .warn-box{ background:color-mix(in srgb, var(--sys-orange) 12%, transparent); color:var(--sys-orange); border-radius:var(--radius-sm); padding:8px 12px; font-size:12.5px; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -134,7 +142,7 @@
       <label for="password">Password</label>
       <input id="password" type="password" autocomplete="current-password" />
     </div>
-    <button class="a-btn filled" id="login-btn">Sign In</button>
+    <button class="a-btn filled block" id="login-btn">Sign In</button>
     <p class="err" id="login-err"></p>
   </div>
 </div>
@@ -173,13 +181,14 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<input type="file" id="import-file-input" accept="application/json" style="display:none" />
 
 <script>
 const state = {
   tier: null, username: null,
-  zones: [], selectedZone: null,
+  zones: [], selectedZone: null, activeTab: "overview",
   ioConfig: null, liveTimer: null,
-  pendingReload: null, // { zoneId, config } awaiting permit acknowledgement
+  pendingReload: null, // { zoneId, cfg, endpoint }
 };
 
 function $(sel){ return document.querySelector(sel); }
@@ -188,6 +197,7 @@ function el(tag, attrs, ...children){
   for (const [k, v] of Object.entries(attrs || {})) {
     if (k === "class") node.className = v;
     else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else if (k === "html") node.innerHTML = v;
     else node.setAttribute(k, v);
   }
   for (const c of children) node.append(c instanceof Node ? c : document.createTextNode(c));
@@ -201,18 +211,18 @@ async function api(path, opts) {
     ...opts,
   });
   let body = null;
-  try { body = await resp.json(); } catch (e) { /* no body */ }
-  return { status: resp.status, body };
+  try { body = await resp.json(); } catch (e) { /* no body, e.g. file blob */ }
+  return { status: resp.status, body, raw: resp };
 }
 
 function showToast(msg) {
   const t = $("#toast");
   t.textContent = msg;
   t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2600);
+  setTimeout(() => t.classList.remove("show"), 3200);
 }
 
-// ---- login ----
+// ================= login =================
 
 $("#login-btn").addEventListener("click", doLogin);
 $("#password").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
@@ -222,7 +232,6 @@ async function doLogin() {
   const password = $("#password").value;
   $("#login-err").textContent = "";
   if (!username || !password) { $("#login-err").textContent = "Enter a username and password."; return; }
-
   const { status, body } = await api("/api/login", { method: "POST", body: JSON.stringify({ username, password }) });
   if (status === 200) {
     state.tier = body.tier; state.username = body.username;
@@ -251,7 +260,9 @@ function enterApp() {
   refreshZoneList();
 }
 
-// ---- zone list ----
+function isAdmin() { return state.tier === "admin"; }
+
+// ================= zone list =================
 
 async function refreshZoneList() {
   const { status, body } = await api("/api/zones");
@@ -274,42 +285,48 @@ function renderZoneList() {
     );
     list.append(item);
   }
-  if (state.zones.length === 0) {
-    list.append(el("div", { class: "empty" }, "No zones registered."));
-  }
+  if (state.zones.length === 0) list.append(el("div", { class: "empty" }, "No zones registered."));
 }
 
 async function selectZone(zoneId) {
   state.selectedZone = zoneId;
+  state.activeTab = "overview";
   renderZoneList();
   stopLivePolling();
   await loadZoneDetail(zoneId);
   startLivePolling(zoneId);
 }
 
-// ---- zone detail ----
-
-async function loadZoneDetail(zoneId) {
-  const [{ status, body }, zonesResp] = await Promise.all([
-    api(`/api/zone/${zoneId}/io`),
-    api("/api/zones"),
-  ]);
-  if (status !== 200) {
-    $("#main-panel").innerHTML = "";
-    $("#main-panel").append(el("div", { class: "empty" }, "Could not load this zone: " + JSON.stringify(body)));
-    return;
-  }
-  state.ioConfig = body;
-  state.zones = zonesResp.body.zones;
-  renderZoneList();
-  renderZoneDetail(zoneId);
-}
-
 function meta() {
   return (state.zones.find((z) => z.zone_id === state.selectedZone)) || {};
 }
 
-function renderZoneDetail(zoneId) {
+// ================= zone detail shell =================
+
+async function loadZoneDetail(zoneId) {
+  const [ioResp, zonesResp] = await Promise.all([api(`/api/zone/${zoneId}/io`), api("/api/zones")]);
+  if (ioResp.status !== 200) {
+    $("#main-panel").innerHTML = "";
+    $("#main-panel").append(el("div", { class: "empty" }, "Could not load this zone: " + JSON.stringify(ioResp.body)));
+    return;
+  }
+  state.ioConfig = ioResp.body;
+  state.zones = zonesResp.body.zones;
+  renderZoneList();
+  renderZoneShell(zoneId);
+}
+
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "devices", label: "Devices & Points" },
+  { id: "scan", label: "Bus Scan" },
+  { id: "rules", label: "Logic Rules" },
+  { id: "apply", label: "Apply & Rollback" },
+  { id: "testwrite", label: "Test Write" },
+  { id: "admin", label: "Admin" },
+];
+
+function renderZoneShell(zoneId) {
   const cfg = state.ioConfig;
   const m = meta();
   const panel = $("#main-panel");
@@ -323,12 +340,72 @@ function renderZoneDetail(zoneId) {
       medium ? el("span", { class: "a-badge info" }, medium) : "",
       el("span", { class: "a-badge neutral" }, "config v" + cfg.config_version),
     ),
+    el("div", { class: "tabs" }, ...TABS.map((t) =>
+      el("button", { class: t.id === state.activeTab ? "active" : "", onclick: () => { state.activeTab = t.id; renderZoneShell(zoneId); } }, t.label),
+    )),
+    el("div", { id: "tab-content" }),
   );
 
-  panel.append(buildLiveValuesCard(zoneId));
-  panel.append(buildIoCard(cfg));
-  panel.append(buildRulesCard(zoneId, cfg));
-  panel.append(buildTestWriteCard(zoneId, cfg));
+  const content = $("#tab-content");
+  const renderers = {
+    overview: renderOverviewTab, devices: renderDevicesTab, scan: renderScanTab,
+    rules: renderRulesTab, apply: renderApplyTab, testwrite: renderTestWriteTab, admin: renderAdminTab,
+  };
+  content.append(renderers[state.activeTab](zoneId, cfg));
+}
+
+// ================= Overview tab =================
+
+function renderOverviewTab(zoneId, cfg) {
+  const wrap = el("div", {});
+
+  const bus = cfg.bus;
+  const busCard = el("div", { class: "card" }, el("h3", {}, "Bus Settings"));
+  const busTable = el("table", {},
+    el("tbody", {},
+      el("tr", {}, el("td", { class: "muted" }, "Transport"), el("td", { class: "mono" }, bus.transport)),
+      el("tr", {}, el("td", { class: "muted" }, "Poll interval"), el("td", { class: "mono" }, bus.poll_interval_ms + " ms")),
+      bus.serial ? el("tr", {}, el("td", { class: "muted" }, "Serial port"), el("td", { class: "mono" }, `${bus.serial.port} @ ${bus.serial.baudrate}`)) : "",
+      bus.serial && bus.serial.timeout_ms !== undefined ? el("tr", {}, el("td", { class: "muted" }, "Timeout / retries"), el("td", { class: "mono" }, `${bus.serial.timeout_ms} ms / ${bus.serial.retries}`)) : "",
+      bus.tcp ? el("tr", {}, el("td", { class: "muted" }, "TCP port"), el("td", { class: "mono" }, String(bus.tcp.port))) : "",
+      el("tr", {}, el("td", { class: "muted" }, "Link medium")),
+    ),
+  );
+  busCard.append(busTable);
+
+  const mediumRow = el("div", { class: "test-write-row", style: "margin-top:10px;" },
+    el("span", { class: "muted" }, "Link medium:"),
+    el("select", { id: "link-medium-select" },
+      el("option", { value: "" }, "— none —"),
+      el("option", { value: "wired", selected: cfg.link && cfg.link.medium === "wired" ? "selected" : null }, "wired"),
+      el("option", { value: "wireless", selected: cfg.link && cfg.link.medium === "wireless" ? "selected" : null }, "wireless"),
+    ),
+    el("button", { class: "a-btn tinted small", onclick: () => saveLinkMedium(zoneId) }, "Apply recommended defaults"),
+  );
+  busCard.append(mediumRow);
+  busCard.append(el("div", { class: "empty" }, "Non-actuating settings (poll interval, timeouts, link medium) hot-reload instantly — no permit gate."));
+  wrap.append(busCard);
+
+  wrap.append(buildLiveValuesCard(zoneId));
+  return wrap;
+}
+
+async function saveLinkMedium(zoneId) {
+  const medium = $("#link-medium-select").value;
+  const cfg = JSON.parse(JSON.stringify(state.ioConfig));
+  if (!medium) delete cfg.link;
+  const defaults = { wired: { timeout_ms: 800, retries: 2, backoff_ms: 200, poll_interval_ms: 100 },
+                      wireless: { timeout_ms: 1500, retries: 3, backoff_ms: 400, poll_interval_ms: 150 } }[medium];
+  if (medium && defaults) {
+    cfg.link = { medium };
+    cfg.bus.poll_interval_ms = defaults.poll_interval_ms;
+    if (cfg.bus.serial) {
+      cfg.bus.serial.timeout_ms = defaults.timeout_ms;
+      cfg.bus.serial.retries = defaults.retries;
+      cfg.bus.serial.backoff_ms = defaults.backoff_ms;
+    }
+  }
+  await pushIoConfig(zoneId, cfg);
 }
 
 function buildLiveValuesCard(zoneId) {
@@ -343,16 +420,39 @@ function buildLiveValuesCard(zoneId) {
   return card;
 }
 
-function buildIoCard(cfg) {
-  const card = el("div", { class: "card" }, el("h3", {}, "Devices & Points"));
-  const table = el("table", {},
+// ================= Devices & Points tab =================
+
+function renderDevicesTab(zoneId, cfg) {
+  const wrap = el("div", {});
+
+  const devCard = el("div", { class: "card" }, el("h3", {}, "Devices"));
+  const devTable = el("table", {},
+    el("thead", {}, el("tr", {}, el("th", {}, "Unit ID"), el("th", {}, "Name"), el("th", {}, "Type"), el("th", {}, "Host"))),
+  );
+  const devBody = el("tbody", {});
+  for (const d of cfg.devices) {
+    devBody.append(el("tr", {},
+      el("td", { class: "mono" }, String(d.unit_id)), el("td", {}, d.name), el("td", { class: "muted" }, d.type),
+      el("td", { class: "mono muted" }, d.tcp ? d.tcp.host : "—"),
+    ));
+  }
+  devTable.append(devBody);
+  devCard.append(devTable);
+  devCard.append(el("div", { class: "actions-row" },
+    el("button", { class: "a-btn tinted small", onclick: () => toggleAddDeviceForm(zoneId) }, "+ Add Device"),
+  ));
+  devCard.append(el("div", { id: "add-device-form" }));
+  wrap.append(devCard);
+
+  const ptCard = el("div", { class: "card" }, el("h3", {}, "Points"));
+  const ptTable = el("table", {},
     el("thead", {}, el("tr", {},
       el("th", {}, "Point"), el("th", {}, "Kind"), el("th", {}, "Owner"), el("th", {}, "Class"), el("th", {}, "Address"),
     )),
   );
-  const tbody = el("tbody", {});
+  const ptBody = el("tbody", {});
   for (const p of cfg.points) {
-    tbody.append(el("tr", {},
+    ptBody.append(el("tr", {},
       el("td", {}, el("div", {}, p.name), el("div", { class: "mono muted" }, p.id)),
       el("td", {}, p.kind),
       el("td", {}, p.owner ? el("span", { class: "a-badge " + (p.owner === "edge" ? "info" : "neutral") }, p.owner) : "—"),
@@ -360,121 +460,183 @@ function buildIoCard(cfg) {
       el("td", { class: "mono muted" }, `${p.modbus.fn} @ ${p.modbus.address}`),
     ));
   }
-  table.append(tbody);
-  card.append(table);
+  ptTable.append(ptBody);
+  ptCard.append(ptTable);
+  ptCard.append(el("div", { class: "actions-row" },
+    el("button", { class: "a-btn tinted small", onclick: () => toggleAddPointForm(zoneId) }, "+ Add Point"),
+  ));
+  ptCard.append(el("div", { id: "add-point-form" }));
+  wrap.append(ptCard);
+
+  return wrap;
+}
+
+function toggleAddDeviceForm(zoneId) {
+  const host = $("#add-device-form");
+  if (host.childElementCount > 0) { host.innerHTML = ""; return; }
+  const unitId = el("input", { placeholder: "unit_id (e.g. 2)" });
+  const name = el("input", { placeholder: "Name" });
+  const type = el("select", {},
+    ...["remote_io", "plc", "sensor", "other"].map((t) => el("option", { value: t }, t)),
+  );
+  const tcpHost = el("input", { placeholder: "TCP host (optional, leave blank for RTU)" });
+  host.append(el("div", { class: "form-grid", style: "margin-top:10px;" },
+    el("div", { class: "field" }, el("label", {}, "Unit ID"), unitId),
+    el("div", { class: "field" }, el("label", {}, "Name"), name),
+    el("div", { class: "field" }, el("label", {}, "Type"), type),
+    el("div", { class: "field full" }, el("label", {}, "TCP host (optional)"), tcpHost),
+    el("div", { class: "field full" }, el("button", { class: "a-btn filled small", onclick: () => submitAddDevice(zoneId, unitId, name, type, tcpHost) }, "Add Device")),
+  ));
+}
+
+async function submitAddDevice(zoneId, unitIdEl, nameEl, typeEl, tcpHostEl) {
+  const cfg = JSON.parse(JSON.stringify(state.ioConfig));
+  const device = { unit_id: Number(unitIdEl.value), name: nameEl.value, type: typeEl.value };
+  if (tcpHostEl.value.trim()) device.tcp = { host: tcpHostEl.value.trim() };
+  cfg.devices.push(device);
+  await pushIoConfig(zoneId, cfg);
+}
+
+function toggleAddPointForm(zoneId) {
+  const host = $("#add-point-form");
+  if (host.childElementCount > 0) { host.innerHTML = ""; return; }
+  const cfg = state.ioConfig;
+  const id = el("input", { placeholder: "point_id (lowercase, snake_case)" });
+  const name = el("input", { placeholder: "Display name" });
+  const unitSel = el("select", {}, ...cfg.devices.map((d) => el("option", { value: d.unit_id }, `${d.unit_id} — ${d.name}`)));
+  const kind = el("select", {}, ...["digital_in", "digital_out", "register"].map((k) => el("option", { value: k }, k)));
+  const fn = el("select", {}, ...["read_coils", "write_coil", "read_holding_registers", "read_input_registers"].map((f) => el("option", { value: f }, f)));
+  const address = el("input", { placeholder: "address (e.g. 5)", type: "number" });
+  const owner = el("select", {}, el("option", { value: "" }, "— none —"), el("option", { value: "edge" }, "edge"), el("option", { value: "plc" }, "plc"));
+  const outputClass = el("select", {}, el("option", { value: "" }, "— none —"), el("option", { value: "indicator" }, "indicator"), el("option", { value: "non_safety_actuation" }, "non_safety_actuation"));
+
+  host.append(el("div", { class: "form-grid", style: "margin-top:10px;" },
+    el("div", { class: "field" }, el("label", {}, "Point ID"), id),
+    el("div", { class: "field" }, el("label", {}, "Name"), name),
+    el("div", { class: "field" }, el("label", {}, "Device"), unitSel),
+    el("div", { class: "field" }, el("label", {}, "Kind"), kind),
+    el("div", { class: "field" }, el("label", {}, "Modbus fn"), fn),
+    el("div", { class: "field" }, el("label", {}, "Address"), address),
+    el("div", { class: "field" }, el("label", {}, "Owner (digital_out only)"), owner),
+    el("div", { class: "field" }, el("label", {}, "Output class (digital_out only)"), outputClass),
+    el("div", { class: "field full" }, el("div", { class: "warn-box" }, "AR-01/AR-03: digital_out points need owner + output_class, or the save will be rejected with a 422.")),
+    el("div", { class: "field full" }, el("button", { class: "a-btn filled small", onclick: () => submitAddPoint(zoneId, { id, name, unitSel, kind, fn, address, owner, outputClass }) }, "Add Point")),
+  ));
+}
+
+async function submitAddPoint(zoneId, f) {
+  const cfg = JSON.parse(JSON.stringify(state.ioConfig));
+  const point = {
+    id: f.id.value.trim(), name: f.name.value.trim() || f.id.value.trim(),
+    unit_id: Number(f.unitSel.value), kind: f.kind.value,
+    modbus: { fn: f.fn.value, address: Number(f.address.value), count: 1 },
+    scaling: null, unit: null, invert: false,
+  };
+  if (f.kind.value === "digital_in") point.debounce_ms = 0;
+  if (f.kind.value === "digital_out") {
+    if (f.owner.value) point.owner = f.owner.value;
+    if (f.outputClass.value) point.output_class = f.outputClass.value;
+  }
+  cfg.points.push(point);
+  await pushIoConfig(zoneId, cfg);
+}
+
+// ================= Bus Scan tab =================
+
+function renderScanTab(zoneId, cfg) {
+  const card = el("div", { class: "card" }, el("h3", {}, "Bus Scan"));
+  const transport = el("select", {}, el("option", { value: "rtu" }, "rtu"), el("option", { value: "tcp" }, "tcp"));
+  const ipRange = el("input", { placeholder: "IP range (tcp only), e.g. 192.168.1.0/24" });
+  card.append(el("div", { class: "test-write-row" },
+    transport, ipRange,
+    el("button", { class: "a-btn filled small", onclick: () => runScan(zoneId, transport, ipRange) }, "Scan"),
+  ));
+  card.append(el("div", { id: "scan-results", style: "margin-top:14px;" }));
   return card;
 }
 
-function buildRulesCard(zoneId, cfg) {
-  const card = el("div", { class: "card" },
-    el("h3", {}, "Logic Rules", el("span", { class: "hint" }, "toggling a rule is an actuating change — AR-07 may gate it")),
-  );
-  if (!cfg.rules || cfg.rules.length === 0) {
-    card.append(el("div", { class: "empty" }, "No rules configured."));
-    return card;
-  }
-  const table = el("table", {},
-    el("thead", {}, el("tr", {}, el("th", {}, "Rule"), el("th", {}, "When"), el("th", {}, "Then"), el("th", {}, "Enabled"))),
-  );
+async function runScan(zoneId, transportEl, ipRangeEl) {
+  const payload = { transport: transportEl.value };
+  if (transportEl.value === "tcp") payload.ip_range = ipRangeEl.value;
+  const { status, body } = await api(`/api/zone/${zoneId}/bus/scan`, { method: "POST", body: JSON.stringify(payload) });
+  const results = $("#scan-results");
+  results.innerHTML = "";
+  if (status !== 200) { results.append(el("div", { class: "empty" }, "Scan failed: " + JSON.stringify(body))); return; }
+  if (body.found.length === 0) { results.append(el("div", { class: "empty" }, "No devices found.")); return; }
+  const table = el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Unit ID"), el("th", {}, "Host"), el("th", {}, "Responded (ms)"))));
   const tbody = el("tbody", {});
-  for (const r of cfg.rules) {
-    const when = (r.when || []).map((c) => `${c.point} ${c.op}`).join(" & ") || "—";
-    const then = (r.then || []).map((a) => `${a.action} ${a.point}${a.value !== undefined ? "=" + a.value : ""}`).join(", ") || "—";
-    const sw = el("div", { class: "ios-switch" + (r.enabled ? " on" : ""), onclick: () => toggleRule(zoneId, r.id) }, el("i", {}));
-    tbody.append(el("tr", {},
-      el("td", { class: "mono" }, r.id), el("td", { class: "mono muted" }, when), el("td", { class: "mono muted" }, then),
-      el("td", {}, sw),
-    ));
+  for (const hit of body.found) {
+    tbody.append(el("tr", {}, el("td", { class: "mono" }, String(hit.unit_id)), el("td", { class: "mono" }, hit.host || "—"), el("td", { class: "mono" }, String(hit.responded_ms))));
   }
   table.append(tbody);
-  card.append(table);
-  return card;
+  results.append(table);
 }
 
-function buildTestWriteCard(zoneId, cfg) {
+// ================= Logic Rules tab =================
+
+function renderRulesTab(zoneId, cfg) {
   const card = el("div", { class: "card" },
-    el("h3", {}, "Test Write", el("span", { class: "hint" }, "commissioning-mode manual pulse, auto-reverts")),
+    el("h3", {}, "Logic Rules", el("span", { class: "hint" }, "toggling/adding/deleting a rule that writes an edge output is an actuating change — AR-07 may gate it")),
   );
-  const outputs = cfg.points.filter((p) => p.kind === "digital_out" && p.owner === "edge");
-  if (outputs.length === 0) {
-    card.append(el("div", { class: "empty" }, "No edge-owned outputs on this zone."));
-    return card;
+  if (cfg.rules.length === 0) card.append(el("div", { class: "empty" }, "No rules configured."));
+  else {
+    const table = el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Rule"), el("th", {}, "When"), el("th", {}, "Then"), el("th", {}, "Enabled"), el("th", {}, ""))));
+    const tbody = el("tbody", {});
+    for (const r of cfg.rules) {
+      const when = (r.when || []).map((c) => `${c.point} ${c.op}${c.value !== undefined ? " " + c.value : ""}`).join(" & ") || "—";
+      const then = (r.then || []).map((a) => `${a.action} ${a.point}${a.value !== undefined ? "=" + a.value : ""}${a.ms ? " (" + a.ms + "ms)" : ""}`).join(", ") || "—";
+      const sw = el("div", { class: "ios-switch" + (r.enabled ? " on" : ""), onclick: () => toggleRule(zoneId, r.id) }, el("i", {}));
+      tbody.append(el("tr", {},
+        el("td", { class: "mono" }, r.id), el("td", { class: "mono muted" }, when), el("td", { class: "mono muted" }, then),
+        el("td", {}, sw),
+        el("td", {}, el("button", { class: "a-btn destructive small", onclick: () => deleteRule(zoneId, r.id) }, "Delete")),
+      ));
+    }
+    table.append(tbody);
+    card.append(table);
   }
-  const commissionRow = el("div", { class: "test-write-row", style: "margin-bottom:14px;" },
-    el("div", { class: "ios-switch", id: "commission-switch", onclick: toggleCommissioning }, el("i", {})),
-    el("span", { class: "muted" }, "Commissioning mode (admin only)"),
-  );
-  card.append(commissionRow);
 
-  const select = el("select", { id: "tw-point" });
-  for (const p of outputs) select.append(el("option", { value: p.id }, `${p.name} (${p.id})`));
-
-  const row = el("div", { class: "test-write-row" },
-    select,
-    el("button", { class: "a-btn tinted small", onclick: () => sendTestWrite(zoneId, true) }, "Set ON"),
-    el("button", { class: "a-btn gray small", onclick: () => sendTestWrite(zoneId, false) }, "Set OFF"),
-  );
-  card.append(row);
+  card.append(el("div", { class: "actions-row" }, el("button", { class: "a-btn tinted small", onclick: () => toggleAddRuleForm(zoneId) }, "+ Add Rule")));
+  card.append(el("div", { id: "add-rule-form" }));
   return card;
 }
 
-async function toggleCommissioning() {
-  const sw = $("#commission-switch");
-  const enabling = !sw.classList.contains("on");
-  const { status, body } = await api(`/api/zone/${state.selectedZone}/commissioning-mode`, {
-    method: "POST", body: JSON.stringify({ enabled: enabling }),
-  });
-  if (status === 200) {
-    sw.classList.toggle("on", body.commissioning_mode);
-    showToast("Commissioning mode " + (body.commissioning_mode ? "enabled" : "disabled"));
-  } else if (status === 403) {
-    showToast("Admin tier required to toggle commissioning mode.");
-  } else {
-    showToast("Failed: " + JSON.stringify(body));
-  }
+function toggleAddRuleForm(zoneId) {
+  const host = $("#add-rule-form");
+  if (host.childElementCount > 0) { host.innerHTML = ""; return; }
+  const cfg = state.ioConfig;
+  const pointOpts = () => cfg.points.map((p) => el("option", { value: p.id }, p.id));
+  const id = el("input", { placeholder: "rule_id" });
+  const whenPoint = el("select", {}, ...pointOpts());
+  const whenOp = el("select", {}, ...[">", "<", ">=", "<=", "==", "rising", "falling"].map((o) => el("option", { value: o }, o)));
+  const whenValue = el("input", { placeholder: "value (ignored for rising/falling)" });
+  const thenAction = el("select", {}, el("option", { value: "set" }, "set"), el("option", { value: "pulse" }, "pulse"));
+  const thenPoint = el("select", {}, ...pointOpts());
+  const thenValue = el("select", {}, el("option", { value: "true" }, "true"), el("option", { value: "false" }, "false"));
+  const thenMs = el("input", { placeholder: "ms (pulse only)", type: "number" });
+
+  host.append(el("div", { class: "form-grid", style: "margin-top:10px;" },
+    el("div", { class: "field full" }, el("label", {}, "Rule ID"), id),
+    el("div", { class: "field" }, el("label", {}, "When: point"), whenPoint),
+    el("div", { class: "field" }, el("label", {}, "op"), whenOp),
+    el("div", { class: "field full" }, el("label", {}, "compare value (ignored for rising/falling)"), whenValue),
+    el("div", { class: "field" }, el("label", {}, "Then: action"), thenAction),
+    el("div", { class: "field" }, el("label", {}, "point"), thenPoint),
+    el("div", { class: "field" }, el("label", {}, "value"), thenValue),
+    el("div", { class: "field" }, el("label", {}, "ms (pulse)"), thenMs),
+    el("div", { class: "field full" }, el("button", { class: "a-btn filled small", onclick: () => submitAddRule(zoneId, { id, whenPoint, whenOp, whenValue, thenAction, thenPoint, thenValue, thenMs }) }, "Add Rule")),
+  ));
 }
 
-async function sendTestWrite(zoneId, value) {
-  const pointId = $("#tw-point").value;
-  const { status, body } = await api(`/api/zone/${zoneId}/test/write`, {
-    method: "POST", body: JSON.stringify({ point: pointId, value, confirm: true, timeout_ms: 5000 }),
-  });
-  if (status === 200) showToast(`Test write sent: ${pointId} = ${value}`);
-  else showToast("Test write failed: " + (body.problems ? body.problems[0] : JSON.stringify(body)));
+async function submitAddRule(zoneId, f) {
+  const cfg = JSON.parse(JSON.stringify(state.ioConfig));
+  const whenCond = { point: f.whenPoint.value, op: f.whenOp.value };
+  if (!["rising", "falling"].includes(f.whenOp.value)) whenCond.value = f.whenValue.value === "true" || f.whenValue.value === "false" ? f.whenValue.value === "true" : Number(f.whenValue.value);
+  const thenAction = { action: f.thenAction.value, point: f.thenPoint.value, value: f.thenValue.value === "true" };
+  if (f.thenAction.value === "pulse") thenAction.ms = Number(f.thenMs.value) || 500;
+  cfg.rules.push({ id: f.id.value.trim(), enabled: true, match: "all", when: [whenCond], then: [thenAction], else: [] });
+  await pushIoConfig(zoneId, cfg);
 }
-
-// ---- live values polling ----
-
-async function pollLive(zoneId) {
-  const { status, body } = await api(`/api/zone/${zoneId}/live`);
-  if (status !== 200) return;
-  const tbody = $("#live-tbody");
-  if (!tbody) return;
-  const entries = Object.entries(body.points);
-  if (entries.length === 0) {
-    tbody.innerHTML = "";
-    tbody.append(el("tr", {}, el("td", { colspan: "3", class: "empty" }, "No values yet — zone may not be running.")));
-    return;
-  }
-  tbody.innerHTML = "";
-  for (const [pointId, v] of entries) {
-    tbody.append(el("tr", {},
-      el("td", { class: "mono" }, pointId),
-      el("td", { class: "mono" }, String(v.value)),
-      el("td", {}, v.stale ? el("span", { class: "stale" }, "STALE") : el("span", { class: "fresh" }, "live")),
-    ));
-  }
-}
-
-function startLivePolling(zoneId) {
-  pollLive(zoneId);
-  state.liveTimer = setInterval(() => pollLive(zoneId), 1500);
-}
-function stopLivePolling() {
-  if (state.liveTimer) { clearInterval(state.liveTimer); state.liveTimer = null; }
-}
-
-// ---- rule toggle -> reload() -> AR-07 permit gate ----
 
 async function toggleRule(zoneId, ruleId) {
   const cfg = JSON.parse(JSON.stringify(state.ioConfig));
@@ -483,17 +645,274 @@ async function toggleRule(zoneId, ruleId) {
   await pushIoConfig(zoneId, cfg);
 }
 
-async function pushIoConfig(zoneId, cfg, { ack } = {}) {
+async function deleteRule(zoneId, ruleId) {
+  const cfg = JSON.parse(JSON.stringify(state.ioConfig));
+  cfg.rules = cfg.rules.filter((r) => r.id !== ruleId);
+  await pushIoConfig(zoneId, cfg);
+}
+
+// ================= Apply & Rollback tab =================
+
+function renderApplyTab(zoneId, cfg) {
+  const wrap = el("div", {});
+
+  const verCard = el("div", { class: "card" }, el("h3", {}, "Version History"));
+  verCard.append(el("div", { id: "versions-list" }, el("div", { class: "empty" }, "Loading…")));
+  wrap.append(verCard);
+  loadVersions(zoneId);
+
+  const exCard = el("div", { class: "card" }, el("h3", {}, "Export / Import"));
+  exCard.append(el("div", { class: "actions-row" },
+    el("button", { class: "a-btn tinted small", onclick: () => exportConfig(zoneId) }, "Export io_config.json"),
+    el("button", { class: "a-btn tinted small", onclick: () => $("#import-file-input").click() }, "Import io_config.json"),
+  ));
+  wrap.append(exCard);
+
+  return wrap;
+}
+
+async function loadVersions(zoneId) {
+  const { status, body } = await api(`/api/zone/${zoneId}/config/versions`);
+  const host = $("#versions-list");
+  if (!host) return;
+  host.innerHTML = "";
+  if (status !== 200 || body.versions.length === 0) { host.append(el("div", { class: "empty" }, "No saved versions yet.")); return; }
+  const table = el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Version"), el("th", {}, ""))));
+  const tbody = el("tbody", {});
+  for (const v of body.versions.slice().reverse()) {
+    tbody.append(el("tr", {}, el("td", { class: "mono" }, String(v)),
+      el("td", {}, el("button", { class: "a-btn gray small", onclick: () => rollbackTo(zoneId, v) }, "Roll back to this"))));
+  }
+  table.append(tbody);
+  host.append(table);
+  host.append(el("div", { class: "actions-row" }, el("button", { class: "a-btn destructive small", onclick: () => rollbackToLkg(zoneId) }, "Roll back one step (LKG)")));
+}
+
+async function rollbackTo(zoneId, version) {
+  const { status, body } = await api(`/api/zone/${zoneId}/config/rollback`, { method: "POST", body: JSON.stringify({ version }) });
+  if (status === 200) { showToast("Rolled back to v" + body.config_version); await loadZoneDetail(zoneId); }
+  else showToast("Rollback failed: " + JSON.stringify(body));
+}
+async function rollbackToLkg(zoneId) {
+  const { status, body } = await api(`/api/zone/${zoneId}/config/rollback`, { method: "POST", body: JSON.stringify({}) });
+  if (status === 200) { showToast("Rolled back to v" + body.config_version); await loadZoneDetail(zoneId); }
+  else showToast("Rollback failed: " + JSON.stringify(body));
+}
+
+async function exportConfig(zoneId) {
+  const { status, body } = await api(`/api/zone/${zoneId}/io/export`);
+  if (status !== 200) { showToast("Export failed"); return; }
+  const blob = new Blob([JSON.stringify(body, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = el("a", { href: url, download: `${zoneId}_io_config_export.json` });
+  document.body.append(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+$("#import-file-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file || !state.selectedZone) return;
+  const text = await file.text();
+  let doc;
+  try { doc = JSON.parse(text); } catch (err) { showToast("Not valid JSON."); return; }
+  await pushIoConfig(state.selectedZone, doc, { endpoint: "io/import" });
+  e.target.value = "";
+});
+
+// ================= Test Write tab =================
+
+function renderTestWriteTab(zoneId, cfg) {
+  const card = el("div", { class: "card" },
+    el("h3", {}, "Test Write", el("span", { class: "hint" }, "commissioning-mode manual pulse, auto-reverts")),
+  );
+  const outputs = cfg.points.filter((p) => p.kind === "digital_out" && p.owner === "edge");
+  const commissionRow = el("div", { class: "test-write-row", style: "margin-bottom:14px;" },
+    el("div", { class: "ios-switch", id: "commission-switch", onclick: toggleCommissioning }, el("i", {})),
+    el("span", { class: "muted" }, "Commissioning mode" + (isAdmin() ? "" : " (admin only — button disabled)")),
+  );
+  card.append(commissionRow);
+  if (outputs.length === 0) { card.append(el("div", { class: "empty" }, "No edge-owned outputs on this zone.")); return card; }
+
+  const select = el("select", { id: "tw-point" });
+  for (const p of outputs) select.append(el("option", { value: p.id }, `${p.name} (${p.id})`));
+  card.append(el("div", { class: "test-write-row" },
+    select,
+    el("button", { class: "a-btn tinted small", onclick: () => sendTestWrite(zoneId, true) }, "Set ON"),
+    el("button", { class: "a-btn gray small", onclick: () => sendTestWrite(zoneId, false) }, "Set OFF"),
+  ));
+  return card;
+}
+
+async function toggleCommissioning() {
+  if (!isAdmin()) { showToast("Admin tier required to toggle commissioning mode."); return; }
+  const sw = $("#commission-switch");
+  const enabling = !sw.classList.contains("on");
+  const { status, body } = await api(`/api/zone/${state.selectedZone}/commissioning-mode`, { method: "POST", body: JSON.stringify({ enabled: enabling }) });
+  if (status === 200) { sw.classList.toggle("on", body.commissioning_mode); showToast("Commissioning mode " + (body.commissioning_mode ? "enabled" : "disabled")); }
+  else showToast("Failed: " + JSON.stringify(body));
+}
+
+async function sendTestWrite(zoneId, value) {
+  const pointId = $("#tw-point").value;
+  const { status, body } = await api(`/api/zone/${zoneId}/test/write`, { method: "POST", body: JSON.stringify({ point: pointId, value, confirm: true, timeout_ms: 5000 }) });
+  if (status === 200) showToast(`Test write sent: ${pointId} = ${value}`);
+  else showToast("Test write failed: " + (body.problems ? body.problems[0] : JSON.stringify(body)));
+}
+
+// ================= Admin tab =================
+
+function renderAdminTab(zoneId, cfg) {
+  const wrap = el("div", {});
+  if (!isAdmin()) {
+    wrap.append(el("div", { class: "card" }, el("div", { class: "locked-note" }, "Admin tier required to view identity/system/network settings for this zone.")));
+    return wrap;
+  }
+
+  wrap.append(el("div", { id: "identity-card" }, el("div", { class: "card" }, el("h3", {}, "Identity"), el("div", { class: "empty" }, "Loading…"))));
+  wrap.append(el("div", { id: "system-card" }, el("div", { class: "card" }, el("h3", {}, "System / Network / MQTT / Time"), el("div", { class: "empty" }, "Loading…"))));
+  wrap.append(el("div", { class: "card" }, el("h3", {}, "OTA Updates"),
+    el("div", { class: "locked-note" }, "Not implemented for multi-zone yet — Phase 7's OTA API is still single-terminal only (see docs/MULTI_ZONE_GUIDE.md).")));
+
+  loadIdentityCard(zoneId);
+  loadSystemCard(zoneId);
+  return wrap;
+}
+
+async function loadIdentityCard(zoneId) {
+  const { status, body } = await api(`/api/zone/${zoneId}/identity`);
+  const host = $("#identity-card");
+  if (status !== 200) { host.innerHTML = ""; host.append(el("div", { class: "card" }, el("div", { class: "empty" }, "Failed to load identity."))); return; }
+  const ident = body.identity;
+  const plant = el("input", { value: ident.plant_id });
+  const line = el("input", { value: ident.line_id });
+  const zone = el("input", { value: ident.zone_id });
+  const station = el("input", { value: ident.station_id });
+  const confirmBox = el("input", { type: "checkbox", id: "identity-confirm" });
+
+  host.innerHTML = "";
+  const card = el("div", { class: "card" }, el("h3", {}, "Identity"));
+  card.append(el("div", { class: "form-grid" },
+    el("div", { class: "field" }, el("label", {}, "Plant ID"), plant),
+    el("div", { class: "field" }, el("label", {}, "Line ID"), line),
+    el("div", { class: "field" }, el("label", {}, "Zone ID"), zone),
+    el("div", { class: "field" }, el("label", {}, "Station ID"), station),
+    el("div", { class: "field full" }, el("label", {}, "Boot ID (locked)"), el("input", { value: ident.boot_id, disabled: "disabled" })),
+  ));
+  card.append(el("div", { class: "field inline", style: "margin-top:10px;" }, confirmBox, el("label", { for: "identity-confirm" }, "I understand this breaks historical continuity")));
+  card.append(el("div", { class: "actions-row" }, el("button", { class: "a-btn filled small", onclick: () => saveIdentity(zoneId, { plant, line, zone, station, confirmBox }) }, "Save Identity")));
+  card.append(el("div", { class: "err", id: "identity-err" }));
+  host.append(card);
+}
+
+async function saveIdentity(zoneId, f) {
+  const payload = {
+    plant_id: f.plant.value, line_id: f.line.value, zone_id: f.zone.value, station_id: f.station.value,
+    confirm_breaks_continuity: f.confirmBox.checked,
+  };
+  const { status, body } = await api(`/api/zone/${zoneId}/identity`, { method: "PUT", body: JSON.stringify(payload) });
+  const err = $("#identity-err");
+  if (status === 200) { showToast("Identity updated."); err.textContent = ""; }
+  else err.textContent = (body.problems && body.problems.join("; ")) || "Failed to update identity.";
+}
+
+async function loadSystemCard(zoneId) {
+  const { status, body } = await api(`/api/zone/${zoneId}/system`);
+  const host = $("#system-card");
+  if (status !== 200) { host.innerHTML = ""; host.append(el("div", { class: "card" }, el("div", { class: "empty" }, "Failed to load system config."))); return; }
+  const sys = body;
+  host.innerHTML = "";
+  const card = el("div", { class: "card" }, el("h3", {}, "System / Network / MQTT / Time"));
+
+  const netMode = el("select", {}, ...["static", "dhcp"].map((m) => el("option", { value: m, selected: sys.network.mode === m ? "selected" : null }, m)));
+  const ip = el("input", { value: sys.network.ip || "" });
+  const mask = el("input", { value: sys.network.mask || "" });
+  const gw = el("input", { value: sys.network.gateway || "" });
+  const mqttHost = el("input", { value: sys.mqtt.broker_host });
+  const mqttPort = el("input", { value: sys.mqtt.port, type: "number" });
+  const ntp = el("input", { value: (sys.time.ntp || []).join(", ") });
+  const tz = el("input", { value: sys.time.timezone });
+
+  card.append(el("div", { class: "form-grid" },
+    el("div", { class: "field" }, el("label", {}, "Network mode"), netMode),
+    el("div", { class: "field" }, el("label", {}, "IP"), ip),
+    el("div", { class: "field" }, el("label", {}, "Mask"), mask),
+    el("div", { class: "field" }, el("label", {}, "Gateway"), gw),
+    el("div", { class: "field" }, el("label", {}, "MQTT broker host"), mqttHost),
+    el("div", { class: "field" }, el("label", {}, "MQTT port"), mqttPort),
+    el("div", { class: "field" }, el("label", {}, "NTP hosts (comma-separated)"), ntp),
+    el("div", { class: "field" }, el("label", {}, "Timezone"), tz),
+  ));
+  card.append(el("div", { class: "actions-row" },
+    el("button", { class: "a-btn tinted small", onclick: () => testMqtt(mqttHost, mqttPort) }, "Test MQTT Connection"),
+    el("button", { class: "a-btn filled small", onclick: () => saveSystem(zoneId, sys, { netMode, ip, mask, gw, mqttHost, mqttPort, ntp, tz }) }, "Save System Config"),
+  ));
+  card.append(el("div", { class: "err", id: "system-err" }));
+  card.append(el("div", { id: "system-warnings" }));
+  host.append(card);
+}
+
+async function testMqtt(mqttHostEl, mqttPortEl) {
+  const { status, body } = await api(`/api/zone/${state.selectedZone}/system?test_only=true`, {
+    method: "PUT", body: JSON.stringify({ mqtt: { broker_host: mqttHostEl.value, port: Number(mqttPortEl.value) } }),
+  });
+  showToast(body.ok ? "MQTT reachable: " + body.message : "MQTT unreachable: " + body.message);
+}
+
+async function saveSystem(zoneId, sys, f) {
+  const payload = JSON.parse(JSON.stringify(sys));
+  payload.network.mode = f.netMode.value;
+  payload.network.ip = f.ip.value; payload.network.mask = f.mask.value; payload.network.gateway = f.gw.value;
+  payload.mqtt.broker_host = f.mqttHost.value; payload.mqtt.port = Number(f.mqttPort.value);
+  payload.time.ntp = f.ntp.value.split(",").map((s) => s.trim()).filter(Boolean);
+  payload.time.timezone = f.tz.value;
+
+  const { status, body } = await api(`/api/zone/${zoneId}/system`, { method: "PUT", body: JSON.stringify(payload) });
+  const err = $("#system-err"); const warn = $("#system-warnings");
+  err.textContent = ""; warn.innerHTML = "";
+  if (status === 200) {
+    showToast(body.message || "System config saved.");
+    if (body.warnings && body.warnings.length) for (const w of body.warnings) warn.append(el("div", { class: "warn-box" }, w));
+  } else {
+    err.textContent = (body.problems && body.problems.join("; ")) || (Array.isArray(body.problems) ? body.problems[0] : "Failed to save.") || "Failed to save.";
+  }
+}
+
+// ================= live values polling =================
+
+async function pollLive(zoneId) {
+  const { status, body } = await api(`/api/zone/${zoneId}/live`);
+  if (status !== 200) return;
+  const tbody = $("#live-tbody");
+  if (!tbody) return;
+  const entries = Object.entries(body.points);
+  tbody.innerHTML = "";
+  if (entries.length === 0) { tbody.append(el("tr", {}, el("td", { colspan: "3", class: "empty" }, "No values yet — zone may not be running."))); return; }
+  for (const [pointId, v] of entries) {
+    tbody.append(el("tr", {},
+      el("td", { class: "mono" }, pointId), el("td", { class: "mono" }, String(v.value)),
+      el("td", {}, v.stale ? el("span", { class: "stale" }, "STALE") : el("span", { class: "fresh" }, "live")),
+    ));
+  }
+}
+function startLivePolling(zoneId) { pollLive(zoneId); state.liveTimer = setInterval(() => pollLive(zoneId), 1500); }
+function stopLivePolling() { if (state.liveTimer) { clearInterval(state.liveTimer); state.liveTimer = null; } }
+
+// ================= config push (shared by devices/points/rules/link/import) =================
+
+async function pushIoConfig(zoneId, cfg, { ack, endpoint } = {}) {
   const payload = { ...cfg };
   delete payload.config_version; delete payload.updated_at; delete payload.updated_by;
   if (ack) payload.permit_acknowledged = true;
 
-  const { status, body } = await api(`/api/zone/${zoneId}/io`, { method: "PUT", body: JSON.stringify(payload) });
+  const path = endpoint === "io/import" ? `/api/zone/${zoneId}/io/import` : `/api/zone/${zoneId}/io`;
+  const method = endpoint === "io/import" ? "POST" : "PUT";
+  const { status, body } = await api(path, { method, body: JSON.stringify(payload) });
+
   if (status === 200) {
     showToast("Applied — config v" + body.config_version);
     await loadZoneDetail(zoneId);
   } else if (status === 409 && body.error === "permit_required") {
-    state.pendingReload = { zoneId, cfg };
+    state.pendingReload = { zoneId, cfg, endpoint };
     showPermitModal(body.pending_output_states);
   } else {
     showToast("Failed: " + (body.problems ? body.problems[0] : JSON.stringify(body)));
@@ -504,26 +923,17 @@ function showPermitModal(pendingStates) {
   const rows = $("#permit-rows");
   rows.innerHTML = "";
   for (const [pointId, s] of Object.entries(pendingStates)) {
-    rows.append(el("tr", {},
-      el("td", { class: "mono" }, pointId),
-      el("td", {}, String(s.safe_state)),
-      el("td", {}, s.output_class || "—"),
-      el("td", {}, s.driven_by_rule ? "yes" : "no"),
-    ));
+    rows.append(el("tr", {}, el("td", { class: "mono" }, pointId), el("td", {}, String(s.safe_state)), el("td", {}, s.output_class || "—"), el("td", {}, s.driven_by_rule ? "yes" : "no")));
   }
   $("#permit-modal").classList.add("show");
 }
-
-$("#permit-cancel").addEventListener("click", () => {
-  state.pendingReload = null;
-  $("#permit-modal").classList.remove("show");
-});
+$("#permit-cancel").addEventListener("click", () => { state.pendingReload = null; $("#permit-modal").classList.remove("show"); });
 $("#permit-ack").addEventListener("click", async () => {
   $("#permit-modal").classList.remove("show");
   if (!state.pendingReload) return;
-  const { zoneId, cfg } = state.pendingReload;
+  const { zoneId, cfg, endpoint } = state.pendingReload;
   state.pendingReload = null;
-  await pushIoConfig(zoneId, cfg, { ack: true });
+  await pushIoConfig(zoneId, cfg, { ack: true, endpoint });
 });
 </script>
 </body>
