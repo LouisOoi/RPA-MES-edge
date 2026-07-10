@@ -3,3 +3,9 @@ pytest>=8.0
 pymodbus>=3.13
 flask>=3.0
 cryptography>=42.0
+
+# Windows-only, multi-zone Deployment Variant B (service/windows_service.py).
+# Not installable/importable on Linux/macOS -- that module guards its own
+# import so the rest of the codebase (including this requirements.txt's
+# other entries) works fine without it. See that module's docstring.
+pywin32>=306; sys_platform == "win32"

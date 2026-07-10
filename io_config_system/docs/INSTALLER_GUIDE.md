@@ -233,4 +233,12 @@ version number.
 - The per-terminal **security** commissioning checklist (VLAN, firewall,
   wireless SSID, module hardening) — that's `IO_Config_Execution_Plan.md`'s
   Phase 6 checklist, and it's network/deployment work this API can't do
-  for you. Do it before you do step 3 above, not after.
+  for you. Do it before you do step 3 above, not after. **This applies to
+  a wired deployment (Method A) too, not just a wireless one** — VLAN
+  isolation of the Modbus segment is a property of the network, not of
+  the link medium, and a wired RTU on a flat, unsegmented network is
+  exactly as exposed as an unsecured wireless one.
+- Multi-zone (Deployment Variant B) — a single terminal supervising
+  several independent zones, each with its own identity/config/event log
+  — is a different deployment shape from everything above. See
+  `docs/MULTI_ZONE_GUIDE.md`.

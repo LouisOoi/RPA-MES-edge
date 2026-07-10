@@ -12,6 +12,16 @@
     "updated_at":      { "type": "integer", "minimum": 0, "description": "Unix epoch ms" },
     "updated_by":      { "type": "string", "minLength": 1 },
 
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Multi-zone deployment (Variant B): which physical medium carries this zone's Modbus traffic between the main terminal and this zone's RTU/gateway. Optional and purely descriptive to the engine — see engine/link_medium.py's module docstring. A single-zone (Variant A) deployment simply omits this.",
+      "required": ["medium"],
+      "properties": {
+        "medium": { "enum": ["wired", "wireless"] }
+      }
+    },
+
     "bus": {
       "type": "object",
       "additionalProperties": false,
